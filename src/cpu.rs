@@ -150,9 +150,9 @@ impl AddressingMode {
 		use Operand::*;
 		match self {
 			AM::Immediate => Value(cpu.fetch_byte(mem)),
-			AM::ZeroPage => Value(mem[cpu.fetch_byte(mem) as usize]),
-			AM::ZeroPageX => Value(mem[cpu.fetch_byte(mem).wrapping_add(cpu.x) as usize]),
-			AM::ZeroPageY => Value(mem[cpu.fetch_byte(mem).wrapping_add(cpu.y) as usize]),
+			AM::ZeroPage => Address(cpu.fetch_byte(mem) as u16),
+			AM::ZeroPageX => Address(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16),
+			AM::ZeroPageY => Address(cpu.fetch_byte(mem).wrapping_add(cpu.y) as u16),
 			AM::Absolute => Address(cpu.fetch_word(mem)),
 			AM::AbsoluteX => Address(cpu.fetch_word(mem).wrapping_add(cpu.x as u16)),
 			AM::AbsoluteY => Address(cpu.fetch_word(mem).wrapping_add(cpu.y as u16)),
@@ -166,10 +166,10 @@ impl AddressingMode {
 			//(Indirect), Y
 			//16-bit address specified at the zero page at next byte address + Y as indexing register
 			AM::IndirectIndexed => Address({
-				let address_from_zero_page = dbg!(read_word_from_zero_page(mem, cpu.fetch_byte(mem)));
-				let address = (address_from_zero_page >> 8) << 8
-					| (address_from_zero_page as u8).wrapping_add(cpu.y) as u16;
-				read_word(mem, address)
+				let address_from_zero_page =
+					dbg!(read_word_from_zero_page(mem, cpu.fetch_byte(mem)));
+				(address_from_zero_page >> 8) << 8
+					| (address_from_zero_page as u8).wrapping_add(cpu.y) as u16
 			}),
 			AM::Implicit | AM::Accumulator => Implicit,
 			AM::Relative => Value(cpu.fetch_byte(mem)),
@@ -207,7 +207,7 @@ impl Cpu {
 		use Operation::*;
 		match instruction {
 			Instruction(LDA, Value(value)) => self.load_accumulator(value),
-			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[addr as usize]),
+			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[dbg!(addr) as usize]),
 			Instruction(STA, Address(addr)) => mem[addr as usize] = self.a,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
@@ -219,6 +219,7 @@ impl Cpu {
 		use AddressingMode::*;
 		use Operation::*;
 		match operation {
+			//Load Accumulator
 			0xa9 => Instruction(LDA, operand(Immediate)),
 			0xa5 => Instruction(LDA, operand(ZeroPage)),
 			0xb5 => Instruction(LDA, operand(ZeroPageX)),
@@ -227,6 +228,14 @@ impl Cpu {
 			0xb9 => Instruction(LDA, operand(AbsoluteY)),
 			0xa1 => Instruction(LDA, operand(IndexedIndirect)),
 			0xb1 => Instruction(LDA, operand(IndirectIndexed)),
+			//Store Accumulator
+			0x85 => Instruction(STA, operand(ZeroPage)),
+			0x95 => Instruction(STA, operand(ZeroPageX)),
+			0x8d => Instruction(STA, operand(Absolute)),
+			0x9d => Instruction(STA, operand(AbsoluteX)),
+			0x99 => Instruction(STA, operand(AbsoluteY)),
+			0x81 => Instruction(STA, operand(IndexedIndirect)),
+			0x91 => Instruction(STA, operand(IndirectIndexed)),
 			_ => panic!(
 				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
 				self.program_counter - 1
