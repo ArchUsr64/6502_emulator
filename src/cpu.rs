@@ -117,7 +117,7 @@ enum Operation {
 	TYA,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Operand {
 	Implicit,
 	Value(u8),
@@ -166,10 +166,8 @@ impl AddressingMode {
 			//(Indirect), Y
 			//16-bit address specified at the zero page at next byte address + Y as indexing register
 			AM::IndirectIndexed => Address({
-				let address_from_zero_page =
-					dbg!(read_word_from_zero_page(mem, cpu.fetch_byte(mem)));
-				(address_from_zero_page >> 8) << 8
-					| (address_from_zero_page as u8).wrapping_add(cpu.y) as u16
+				let address_from_zero_page = read_word_from_zero_page(mem, cpu.fetch_byte(mem));
+				address_from_zero_page.wrapping_add(cpu.y as u16)
 			}),
 			AM::Implicit | AM::Accumulator => Implicit,
 			AM::Relative => Value(cpu.fetch_byte(mem)),
@@ -177,6 +175,7 @@ impl AddressingMode {
 	}
 }
 
+#[derive(Clone, Copy)]
 pub struct Cpu {
 	program_counter: u16,
 	x: u8,
@@ -207,7 +206,7 @@ impl Cpu {
 		use Operation::*;
 		match instruction {
 			Instruction(LDA, Value(value)) => self.load_accumulator(value),
-			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[dbg!(addr) as usize]),
+			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[addr as usize]),
 			Instruction(STA, Address(addr)) => mem[addr as usize] = self.a,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
@@ -324,5 +323,125 @@ impl fmt::Debug for Cpu {
 			self.program_counter,
 		));
 		write!(f, "{output}")
+	}
+}
+mod test {
+	use crate::cpu::*;
+	use rand::random;
+	fn test_cpu() -> Cpu {
+		let mut cpu = Cpu::new();
+		cpu.program_counter = random();
+		cpu.a = random();
+		cpu.x = random();
+		cpu.y = random();
+		cpu
+	}
+	fn test_mem() -> [u8; 65536] {
+		let mut mem = [0; 65536];
+		mem.iter_mut().for_each(|x| *x = random());
+		mem
+	}
+	mod addressing_mode {
+		use crate::cpu::test::*;
+		#[test]
+		fn immediate() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			assert_eq!(
+				AddressingMode::Immediate.get_operand(&mut cpu, &mem),
+				Operand::Value(mem[cpu.program_counter as usize - 1])
+			);
+		}
+		#[test]
+		fn zero_page() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			assert_eq!(
+				AddressingMode::ZeroPage.get_operand(&mut cpu, &mem),
+				Operand::Address(mem[cpu.program_counter as usize - 1] as u16)
+			);
+		}
+		#[test]
+		fn zero_page_xy() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			assert_eq!(
+				AddressingMode::ZeroPageX.get_operand(&mut cpu, &mem),
+				Operand::Address(
+					(mem[cpu.program_counter as usize - 1].wrapping_add(cpu.x)) as u16
+				)
+			);
+			assert_eq!(
+				AddressingMode::ZeroPageY.get_operand(&mut cpu, &mem),
+				Operand::Address(
+					(mem[cpu.program_counter as usize - 1].wrapping_add(cpu.y)) as u16
+				)
+			);
+		}
+		#[test]
+		fn absolute() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			if let Operand::Address(addr) = AddressingMode::Absolute.get_operand(&mut cpu, &mem) {
+				assert_eq!(addr % 256, (mem[cpu.program_counter as usize - 2]) as u16);
+				assert_eq!(addr >> 8, (mem[cpu.program_counter as usize - 1]) as u16);
+			} else {
+				panic!()
+			}
+		}
+		#[test]
+		fn absolute_xy() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			let value = (
+				AddressingMode::AbsoluteX.get_operand(&mut cpu, &mem),
+				AddressingMode::AbsoluteY.get_operand(&mut cpu, &mem),
+			);
+			let get_bytes = |register_value, pc_offset: usize| match mem
+				[cpu.program_counter as usize - 2 - pc_offset]
+				.checked_add(register_value)
+			{
+				Some(val) => (val, mem[cpu.program_counter as usize - 1 - pc_offset]),
+				None => (
+					mem[cpu.program_counter as usize - 2 - pc_offset].wrapping_add(register_value),
+					mem[cpu.program_counter as usize - 1 - pc_offset].wrapping_add(1),
+				),
+			};
+			if let (Operand::Address(addr_x), Operand::Address(addr_y)) = value {
+				assert_eq!(addr_x % 256, get_bytes(cpu.x, 2).0 as u16,);
+				assert_eq!(addr_x >> 8, get_bytes(cpu.x, 2).1 as u16,);
+				assert_eq!(addr_y % 256, get_bytes(cpu.y, 0).0 as u16,);
+				assert_eq!(addr_y >> 8, get_bytes(cpu.y, 0).1 as u16,);
+			} else {
+				panic!()
+			}
+		}
+		#[test]
+		fn indexed_indirect() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			if let Operand::Address(addr) =
+				AddressingMode::IndexedIndirect.get_operand(&mut cpu, &mem)
+			{
+				let zero_page_addr = mem[cpu.program_counter as usize - 1].wrapping_add(cpu.x);
+				assert_eq!(addr, read_word_from_zero_page(&mem, zero_page_addr));
+			} else {
+				panic!()
+			}
+		}
+		#[test]
+		fn indirect_indexed() {
+			let mut mem = test_mem();
+			let mut cpu = test_cpu();
+			if let Operand::Address(addr) =
+				AddressingMode::IndirectIndexed.get_operand(&mut cpu, &mem)
+			{
+				let zero_page_addr =
+					read_word_from_zero_page(&mem, mem[cpu.program_counter as usize - 1]);
+				assert_eq!(addr, zero_page_addr.wrapping_add(cpu.y as u16));
+			} else {
+				panic!()
+			}
+		}
 	}
 }
