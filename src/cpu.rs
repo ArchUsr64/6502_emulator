@@ -208,6 +208,13 @@ impl Cpu {
 			Instruction(LDA, Value(value)) => self.load_accumulator(value),
 			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[addr as usize]),
 			Instruction(STA, Address(addr)) => mem[addr as usize] = self.a,
+			Instruction(CLC, Implicit) => self.set_flag(StatusFlags::Carry, false),
+			Instruction(CLD, Implicit) => self.set_flag(StatusFlags::DecimalMode, false),
+			Instruction(CLI, Implicit) => self.set_flag(StatusFlags::InterruptDisable, false),
+			Instruction(CLV, Implicit) => self.set_flag(StatusFlags::Overflow, false),
+			Instruction(SEC, Implicit) => self.set_flag(StatusFlags::Carry, true),
+			Instruction(SED, Implicit) => self.set_flag(StatusFlags::DecimalMode, true),
+			Instruction(SEI, Implicit) => self.set_flag(StatusFlags::InterruptDisable, true),
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
 	}
@@ -235,6 +242,15 @@ impl Cpu {
 			0x99 => Instruction(STA, operand(AbsoluteY)),
 			0x81 => Instruction(STA, operand(IndexedIndirect)),
 			0x91 => Instruction(STA, operand(IndirectIndexed)),
+			//Clear Flags
+			0x18 => Instruction(CLC, Operand::Implicit),
+			0xd8 => Instruction(CLD, Operand::Implicit),
+			0x58 => Instruction(CLI, Operand::Implicit),
+			0xb8 => Instruction(CLV, Operand::Implicit),
+			//Set Flags
+			0x38 => Instruction(SEC, Operand::Implicit),
+			0xf8 => Instruction(SED, Operand::Implicit),
+			0x78 => Instruction(SEI, Operand::Implicit),
 			_ => panic!(
 				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
 				self.program_counter - 1

@@ -17,7 +17,15 @@ fn main() {
 	//STA $02,X
 	mem[0x1236] = 0x95;
 	mem[0x1237] = 0x02;
+	//SEI
+	mem[0x1238] = 0x78;
+	//CLI
+	mem[0x1239] = 0x58;
 	cpu.reset(&mem);
+	println!("{cpu:?}");
+	cpu.execute(&mut mem);
+	println!("{cpu:?}");
+	cpu.execute(&mut mem);
 	println!("{cpu:?}");
 	cpu.execute(&mut mem);
 	println!("{cpu:?}");
