@@ -205,6 +205,8 @@ impl Cpu {
 		use Operand::*;
 		use Operation::*;
 		match instruction {
+			Instruction(ADC, Value(value)) => self.add_with_carry(value),
+			Instruction(ADC, Address(addr)) => self.add_with_carry(mem[addr as usize]),
 			Instruction(LDA, Value(value)) => self.load_accumulator(value),
 			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[addr as usize]),
 			Instruction(STA, Address(addr)) => mem[addr as usize] = self.a,
@@ -225,6 +227,15 @@ impl Cpu {
 		use AddressingMode::*;
 		use Operation::*;
 		match operation {
+			//Add with Carry
+			0x69 => Instruction(ADC, operand(Immediate)),
+			0x65 => Instruction(ADC, operand(ZeroPage)),
+			0x75 => Instruction(ADC, operand(ZeroPageX)),
+			0x6d => Instruction(ADC, operand(Absolute)),
+			0x7d => Instruction(ADC, operand(AbsoluteX)),
+			0x79 => Instruction(ADC, operand(AbsoluteY)),
+			0x61 => Instruction(ADC, operand(IndexedIndirect)),
+			0x71 => Instruction(ADC, operand(IndirectIndexed)),
 			//Load Accumulator
 			0xa9 => Instruction(LDA, operand(Immediate)),
 			0xa5 => Instruction(LDA, operand(ZeroPage)),
@@ -284,6 +295,25 @@ impl Cpu {
 		self.a = value;
 		self.set_flag(StatusFlags::Zero, self.a == 0);
 		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
+	}
+	fn add_with_carry(&mut self, value: u8) {
+		let result = self.a as u16
+			+ value as u16
+			+ if self.get_flag(StatusFlags::Carry) {
+				1 << 8
+			} else {
+				0
+			};
+		self.a = result as u8;
+		self.set_flag(StatusFlags::Zero, self.a == 0);
+		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
+		self.set_flag(StatusFlags::Carry, result & 0x100 > 0);
+		let result = if result & 0x100 > 0 {
+			result | 0xff00
+		} else {
+			result
+		} as i16;
+		self.set_flag(StatusFlags::Overflow, !(-128..=127).contains(&result));
 	}
 }
 
