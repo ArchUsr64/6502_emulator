@@ -374,14 +374,14 @@ impl Cpu {
 			0x6e => instruction(ROR, Absolute),
 			0x7e => instruction(ROR, AbsoluteX),
 			//Subtract with Carry
-			0xe9 => instruction(ADC, Immediate),
-			0xe5 => instruction(ADC, ZeroPage),
-			0xf5 => instruction(ADC, ZeroPageX),
-			0xed => instruction(ADC, Absolute),
-			0xfd => instruction(ADC, AbsoluteX),
-			0xf9 => instruction(ADC, AbsoluteY),
-			0xe1 => instruction(ADC, IndexedIndirect),
-			0xf1 => instruction(ADC, IndirectIndexed),
+			0xe9 => instruction(SBC, Immediate),
+			0xe5 => instruction(SBC, ZeroPage),
+			0xf5 => instruction(SBC, ZeroPageX),
+			0xed => instruction(SBC, Absolute),
+			0xfd => instruction(SBC, AbsoluteX),
+			0xf9 => instruction(SBC, AbsoluteY),
+			0xe1 => instruction(SBC, IndexedIndirect),
+			0xf1 => instruction(SBC, IndirectIndexed),
 			//Store accumulator
 			0x85 => instruction(STA, ZeroPage),
 			0x95 => instruction(STA, ZeroPageX),
@@ -515,9 +515,9 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, self.a & value == 0);
 	}
 	fn compare_register(&mut self, value: u8, register_value: u8) {
-		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
-		self.set_flag(StatusFlags::Carry, self.a > value);
-		self.set_flag(StatusFlags::Zero, self.a == value);
+		self.set_flag(StatusFlags::Negative, register_value & 0x80 > 0);
+		self.set_flag(StatusFlags::Carry, register_value > value);
+		self.set_flag(StatusFlags::Zero, register_value == value);
 	}
 	fn add_with_carry(&mut self, value: u8) {
 		let result = self.a as u16
@@ -612,6 +612,7 @@ impl fmt::Debug for Cpu {
 		write!(f, "{output}")
 	}
 }
+#[allow(unused)]
 mod test {
 	use crate::cpu::*;
 	use rand::random;
@@ -629,10 +630,11 @@ mod test {
 		mem
 	}
 	mod addressing_mode {
+		#[allow(unused_imports)]
 		use crate::cpu::test::*;
 		#[test]
 		fn immediate() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
 				AddressingMode::Immediate
@@ -643,7 +645,7 @@ mod test {
 		}
 		#[test]
 		fn zero_page() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
 				AddressingMode::ZeroPage
@@ -654,7 +656,7 @@ mod test {
 		}
 		#[test]
 		fn zero_page_xy() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
 				AddressingMode::ZeroPageX
@@ -675,7 +677,7 @@ mod test {
 		}
 		#[test]
 		fn absolute() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			if let Operand::Address(addr) = AddressingMode::Absolute
 				.get_operand(&mut cpu, &mem)
@@ -689,7 +691,7 @@ mod test {
 		}
 		#[test]
 		fn absolute_xy() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			let value = (
 				AddressingMode::AbsoluteX.get_operand(&mut cpu, &mem),
@@ -716,7 +718,7 @@ mod test {
 		}
 		#[test]
 		fn indexed_indirect() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			if let Operand::Address(addr) = AddressingMode::IndexedIndirect
 				.get_operand(&mut cpu, &mem)
@@ -730,7 +732,7 @@ mod test {
 		}
 		#[test]
 		fn indirect_indexed() {
-			let mut mem = test_mem();
+			let mem = test_mem();
 			let mut cpu = test_cpu();
 			if let Operand::Address(addr) = AddressingMode::IndirectIndexed
 				.get_operand(&mut cpu, &mem)
