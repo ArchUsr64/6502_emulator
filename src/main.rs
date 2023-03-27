@@ -1,4 +1,3 @@
-#![allow(unused)]
 mod cpu;
 use cpu::*;
 

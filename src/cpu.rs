@@ -119,18 +119,16 @@ enum Operation {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Operand {
-	Implicit,
 	Value(u8),
 	Address(u16),
 }
 
 #[derive(Clone, Copy, Debug)]
-struct Instruction(Operation, Operand);
+struct Instruction(Operation, Option<Operand>);
 
 #[derive(Clone, Copy, Debug)]
 enum AddressingMode {
 	Implicit,
-	Accumulator,
 	Immediate,
 	ZeroPage,
 	ZeroPageX,
@@ -145,10 +143,10 @@ enum AddressingMode {
 }
 
 impl AddressingMode {
-	fn get_operand(&self, cpu: &mut Cpu, mem: &[u8; 65536]) -> Operand {
+	fn get_operand(&self, cpu: &mut Cpu, mem: &[u8; 65536]) -> Option<Operand> {
 		use AddressingMode as AM;
 		use Operand::*;
-		match self {
+		Some(match self {
 			AM::Immediate => Value(cpu.fetch_byte(mem)),
 			AM::ZeroPage => Address(cpu.fetch_byte(mem) as u16),
 			AM::ZeroPageX => Address(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16),
@@ -169,9 +167,9 @@ impl AddressingMode {
 				let address_from_zero_page = read_word_from_zero_page(mem, cpu.fetch_byte(mem));
 				address_from_zero_page.wrapping_add(cpu.y as u16)
 			}),
-			AM::Implicit | AM::Accumulator => Implicit,
 			AM::Relative => Value(cpu.fetch_byte(mem)),
-		}
+			AM::Implicit => return None,
+		})
 	}
 }
 
@@ -204,70 +202,209 @@ impl Cpu {
 		let instruction = self.decode(mem);
 		use Operand::*;
 		use Operation::*;
+		let pass_by_value = |operand| match operand {
+			Value(x) => x,
+			Address(x) => mem[x as usize],
+		};
 		match instruction {
-			Instruction(ADC, Value(value)) => self.add_with_carry(value),
-			Instruction(ADC, Address(addr)) => self.add_with_carry(mem[addr as usize]),
-			Instruction(LDA, Value(value)) => self.load_accumulator(value),
-			Instruction(LDA, Address(addr)) => self.load_accumulator(mem[addr as usize]),
-			Instruction(STA, Address(addr)) => mem[addr as usize] = self.a,
-			Instruction(CLC, Implicit) => self.set_flag(StatusFlags::Carry, false),
-			Instruction(CLD, Implicit) => self.set_flag(StatusFlags::DecimalMode, false),
-			Instruction(CLI, Implicit) => self.set_flag(StatusFlags::InterruptDisable, false),
-			Instruction(CLV, Implicit) => self.set_flag(StatusFlags::Overflow, false),
-			Instruction(SEC, Implicit) => self.set_flag(StatusFlags::Carry, true),
-			Instruction(SED, Implicit) => self.set_flag(StatusFlags::DecimalMode, true),
-			Instruction(SEI, Implicit) => self.set_flag(StatusFlags::InterruptDisable, true),
+			//Logical Operations
+			Instruction(ADC, Some(operand)) => self.add_with_carry(pass_by_value(operand)),
+			Instruction(AND, Some(operand)) => self.set_a(self.a & pass_by_value(operand)),
+			Instruction(ASL, operand) => self.arithmetic_shift_left(mem, operand),
+			Instruction(BIT, Some(operand)) => self.bit(pass_by_value(operand)),
+			Instruction(CMP, Some(operand)) => {
+				self.compare_register(pass_by_value(operand), self.a)
+			}
+			Instruction(CPX, Some(operand)) => {
+				self.compare_register(pass_by_value(operand), self.x)
+			}
+			Instruction(CPY, Some(operand)) => {
+				self.compare_register(pass_by_value(operand), self.y)
+			}
+			Instruction(DEC, Some(Address(addr))) => {
+				mem[addr as usize] -= 1;
+				self.update_zero_and_negative_flag(mem[addr as usize])
+			}
+			Instruction(DEX, None) => self.set_x(self.x - 1),
+			Instruction(DEY, None) => self.set_y(self.y - 1),
+			Instruction(INX, None) => self.set_x(self.x + 1),
+			Instruction(INY, None) => self.set_y(self.y + 1),
+			Instruction(EOR, Some(operand)) => self.set_a(self.a ^ pass_by_value(operand)),
+			Instruction(INC, Some(Address(addr))) => {
+				mem[addr as usize] += 1;
+				self.update_zero_and_negative_flag(mem[addr as usize])
+			}
+			Instruction(LSR, operand) => self.logical_shift_right(mem, operand),
+			Instruction(ORA, Some(operand)) => self.set_a(self.a | pass_by_value(operand)),
+			Instruction(ROL, operand) => self.rotate_right(mem, operand),
+			Instruction(ROR, operand) => self.rotate_left(mem, operand),
+			Instruction(SBC, Some(operand)) => self.sub_with_carry(pass_by_value(operand)),
+			//Flags
+			Instruction(CLC, None) => self.set_flag(StatusFlags::Carry, false),
+			Instruction(CLD, None) => self.set_flag(StatusFlags::DecimalMode, false),
+			Instruction(CLI, None) => self.set_flag(StatusFlags::InterruptDisable, false),
+			Instruction(CLV, None) => self.set_flag(StatusFlags::Overflow, false),
+			Instruction(SEC, None) => self.set_flag(StatusFlags::Carry, true),
+			Instruction(SED, None) => self.set_flag(StatusFlags::DecimalMode, true),
+			Instruction(SEI, None) => self.set_flag(StatusFlags::InterruptDisable, true),
+			//Misc
+			Instruction(NOP, None) => self.program_counter += 1,
+			Instruction(LDA, Some(operand)) => self.set_a(pass_by_value(operand)),
+			Instruction(STA, Some(Address(addr))) => mem[addr as usize] = self.a,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
 	}
 
 	fn decode(&mut self, mem: &[u8; 65536]) -> Instruction {
 		let operation = self.fetch_byte(mem);
-		let mut operand = |addressing_mode: AddressingMode| addressing_mode.get_operand(self, mem);
+		let mut instruction = |operation, addressing_mode: AddressingMode| {
+			Instruction(operation, addressing_mode.get_operand(self, mem))
+		};
 		use AddressingMode::*;
 		use Operation::*;
 		match operation {
 			//Add with Carry
-			0x69 => Instruction(ADC, operand(Immediate)),
-			0x65 => Instruction(ADC, operand(ZeroPage)),
-			0x75 => Instruction(ADC, operand(ZeroPageX)),
-			0x6d => Instruction(ADC, operand(Absolute)),
-			0x7d => Instruction(ADC, operand(AbsoluteX)),
-			0x79 => Instruction(ADC, operand(AbsoluteY)),
-			0x61 => Instruction(ADC, operand(IndexedIndirect)),
-			0x71 => Instruction(ADC, operand(IndirectIndexed)),
+			0x69 => instruction(ADC, Immediate),
+			0x65 => instruction(ADC, ZeroPage),
+			0x75 => instruction(ADC, ZeroPageX),
+			0x6d => instruction(ADC, Absolute),
+			0x7d => instruction(ADC, AbsoluteX),
+			0x79 => instruction(ADC, AbsoluteY),
+			0x61 => instruction(ADC, IndexedIndirect),
+			0x71 => instruction(ADC, IndirectIndexed),
+			//Logical AND
+			0x29 => instruction(AND, Immediate),
+			0x25 => instruction(AND, ZeroPage),
+			0x35 => instruction(AND, ZeroPageX),
+			0x2d => instruction(AND, Absolute),
+			0x3d => instruction(AND, AbsoluteX),
+			0x39 => instruction(AND, AbsoluteY),
+			0x21 => instruction(AND, IndexedIndirect),
+			0x31 => instruction(AND, IndirectIndexed),
+			//Arithemetic Shift Left
+			0x0a => instruction(ASL, Implicit),
+			0x06 => instruction(ASL, ZeroPage),
+			0x16 => instruction(ASL, ZeroPageX),
+			0x0e => instruction(ASL, Absolute),
+			0x1e => instruction(ASL, AbsoluteX),
+			//BIT
+			0x24 => instruction(BIT, ZeroPage),
+			0x2c => instruction(BIT, Absolute),
+			//Compare
+			0xc9 => instruction(CMP, Immediate),
+			0xc5 => instruction(CMP, ZeroPage),
+			0xd5 => instruction(CMP, ZeroPageX),
+			0xcd => instruction(CMP, Absolute),
+			0xdd => instruction(CMP, AbsoluteX),
+			0xd9 => instruction(CMP, AbsoluteY),
+			0xc1 => instruction(CMP, IndexedIndirect),
+			0xd1 => instruction(CMP, IndirectIndexed),
+			//Compare X
+			0xe0 => instruction(CPX, Immediate),
+			0xe4 => instruction(CPX, ZeroPage),
+			0xec => instruction(CPX, Absolute),
+			//Compare Y
+			0xc0 => instruction(CPY, Immediate),
+			0xc4 => instruction(CPY, ZeroPage),
+			0xcc => instruction(CPY, Absolute),
+			//Decrement
+			0xc6 => instruction(DEC, ZeroPage),
+			0xd6 => instruction(DEC, ZeroPageX),
+			0xce => instruction(DEC, Absolute),
+			0xde => instruction(DEC, AbsoluteX),
+			//Decrement X
+			0xca => instruction(DEX, Implicit),
+			//Decrement Y
+			0x88 => instruction(DEY, Implicit),
+			//Exclusive OR
+			0x49 => instruction(EOR, Immediate),
+			0x45 => instruction(EOR, ZeroPage),
+			0x55 => instruction(EOR, ZeroPageX),
+			0x4d => instruction(EOR, Absolute),
+			0x5d => instruction(EOR, AbsoluteX),
+			0x59 => instruction(EOR, AbsoluteY),
+			0x41 => instruction(EOR, IndexedIndirect),
+			0x51 => instruction(EOR, IndirectIndexed),
+			//Increment Memory
+			0xe6 => instruction(INC, ZeroPage),
+			0xf6 => instruction(INC, ZeroPageX),
+			0xee => instruction(INC, Absolute),
+			0xfe => instruction(INC, AbsoluteX),
+			//Decrement X
+			0xe8 => instruction(INX, Implicit),
+			//Decrement Y
+			0xc8 => instruction(INY, Implicit),
 			//Load Accumulator
-			0xa9 => Instruction(LDA, operand(Immediate)),
-			0xa5 => Instruction(LDA, operand(ZeroPage)),
-			0xb5 => Instruction(LDA, operand(ZeroPageX)),
-			0xad => Instruction(LDA, operand(Absolute)),
-			0xbd => Instruction(LDA, operand(AbsoluteX)),
-			0xb9 => Instruction(LDA, operand(AbsoluteY)),
-			0xa1 => Instruction(LDA, operand(IndexedIndirect)),
-			0xb1 => Instruction(LDA, operand(IndirectIndexed)),
-			//Store Accumulator
-			0x85 => Instruction(STA, operand(ZeroPage)),
-			0x95 => Instruction(STA, operand(ZeroPageX)),
-			0x8d => Instruction(STA, operand(Absolute)),
-			0x9d => Instruction(STA, operand(AbsoluteX)),
-			0x99 => Instruction(STA, operand(AbsoluteY)),
-			0x81 => Instruction(STA, operand(IndexedIndirect)),
-			0x91 => Instruction(STA, operand(IndirectIndexed)),
+			0xa9 => instruction(LDA, Immediate),
+			0xa5 => instruction(LDA, ZeroPage),
+			0xb5 => instruction(LDA, ZeroPageX),
+			0xad => instruction(LDA, Absolute),
+			0xbd => instruction(LDA, AbsoluteX),
+			0xb9 => instruction(LDA, AbsoluteY),
+			0xa1 => instruction(LDA, IndexedIndirect),
+			0xb1 => instruction(LDA, IndirectIndexed),
+			//Logical Shift Right
+			0x4a => instruction(LSR, Implicit),
+			0x46 => instruction(LSR, ZeroPage),
+			0x56 => instruction(LSR, ZeroPageX),
+			0x4e => instruction(LSR, Absolute),
+			0x5e => instruction(LSR, AbsoluteX),
+			//No Operation
+			0xea => instruction(NOP, Implicit),
+			//Logical Inclusive OR
+			0x09 => instruction(ORA, Immediate),
+			0x05 => instruction(ORA, ZeroPage),
+			0x15 => instruction(ORA, ZeroPageX),
+			0x0d => instruction(ORA, Absolute),
+			0x1d => instruction(ORA, AbsoluteX),
+			0x19 => instruction(ORA, AbsoluteY),
+			0x01 => instruction(ORA, IndexedIndirect),
+			0x11 => instruction(ORA, IndirectIndexed),
+			//Rotate Left
+			0x2a => instruction(ROL, Implicit),
+			0x26 => instruction(ROL, ZeroPage),
+			0x36 => instruction(ROL, ZeroPageX),
+			0x2e => instruction(ROL, Absolute),
+			0x3e => instruction(ROL, AbsoluteX),
+			//Rotate Right
+			0x6a => instruction(ROR, Implicit),
+			0x66 => instruction(ROR, ZeroPage),
+			0x76 => instruction(ROR, ZeroPageX),
+			0x6e => instruction(ROR, Absolute),
+			0x7e => instruction(ROR, AbsoluteX),
+			//Subtract with Carry
+			0xe9 => instruction(ADC, Immediate),
+			0xe5 => instruction(ADC, ZeroPage),
+			0xf5 => instruction(ADC, ZeroPageX),
+			0xed => instruction(ADC, Absolute),
+			0xfd => instruction(ADC, AbsoluteX),
+			0xf9 => instruction(ADC, AbsoluteY),
+			0xe1 => instruction(ADC, IndexedIndirect),
+			0xf1 => instruction(ADC, IndirectIndexed),
+			//Store accumulator
+			0x85 => instruction(STA, ZeroPage),
+			0x95 => instruction(STA, ZeroPageX),
+			0x8d => instruction(STA, Absolute),
+			0x9d => instruction(STA, AbsoluteX),
+			0x99 => instruction(STA, AbsoluteY),
+			0x81 => instruction(STA, IndexedIndirect),
+			0x91 => instruction(STA, IndirectIndexed),
 			//Clear Flags
-			0x18 => Instruction(CLC, Operand::Implicit),
-			0xd8 => Instruction(CLD, Operand::Implicit),
-			0x58 => Instruction(CLI, Operand::Implicit),
-			0xb8 => Instruction(CLV, Operand::Implicit),
+			0x18 => instruction(CLC, Implicit),
+			0xd8 => instruction(CLD, Implicit),
+			0x58 => instruction(CLI, Implicit),
+			0xb8 => instruction(CLV, Implicit),
 			//Set Flags
-			0x38 => Instruction(SEC, Operand::Implicit),
-			0xf8 => Instruction(SED, Operand::Implicit),
-			0x78 => Instruction(SEI, Operand::Implicit),
+			0x38 => instruction(SEC, Implicit),
+			0xf8 => instruction(SED, Implicit),
+			0x78 => instruction(SEI, Implicit),
 			_ => panic!(
 				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
 				self.program_counter - 1
 			),
 		}
 	}
+
 	fn get_flag(&self, flag: StatusFlags) -> bool {
 		self.status & flag.get_bit_mask() != 0
 	}
@@ -291,10 +428,95 @@ impl Cpu {
 		self.program_counter += 1;
 		mem[address as usize]
 	}
-	fn load_accumulator(&mut self, value: u8) {
+	fn set_a(&mut self, value: u8) {
 		self.a = value;
-		self.set_flag(StatusFlags::Zero, self.a == 0);
+		self.update_zero_and_negative_flag(value);
+	}
+	fn set_x(&mut self, value: u8) {
+		self.x = value;
+		self.update_zero_and_negative_flag(value);
+	}
+	fn set_y(&mut self, value: u8) {
+		self.y = value;
+		self.update_zero_and_negative_flag(value);
+	}
+	fn update_zero_and_negative_flag(&mut self, value: u8) {
+		self.set_flag(StatusFlags::Zero, value == 0);
+		self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
+	}
+	fn arithmetic_shift_left(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+		if let Some(operand) = operand {
+			match operand {
+				Operand::Address(addr) => {
+					self.set_flag(StatusFlags::Carry, mem[addr as usize] & 0x80 > 0);
+					mem[addr as usize] >>= 1;
+					self.update_zero_and_negative_flag(mem[addr as usize]);
+				}
+				Operand::Value(_) => panic!("Value operand not supported for ASL: {operand:?}"),
+			}
+		} else {
+			self.set_flag(StatusFlags::Carry, self.a & 0x80 > 0);
+			self.set_a(self.a >> 1);
+		}
+	}
+	fn rotate_left(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+		if let Some(operand) = operand {
+			match operand {
+				Operand::Address(addr) => {
+					let new_carray_value = mem[addr as usize] & 0x1 > 0;
+					mem[addr as usize] <<= 1 | self.get_flag(StatusFlags::Carry) as u8;
+					self.set_flag(StatusFlags::Carry, new_carray_value);
+					self.update_zero_and_negative_flag(mem[addr as usize]);
+				}
+				Operand::Value(_) => panic!("Value operand not supported for ROL: {operand:?}"),
+			}
+		} else {
+			let new_carray_value = self.a & 0x1 > 0;
+			self.set_a(self.a << 1 | self.get_flag(StatusFlags::Carry) as u8);
+			self.set_flag(StatusFlags::Carry, new_carray_value);
+		}
+	}
+	fn rotate_right(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+		if let Some(operand) = operand {
+			match operand {
+				Operand::Address(addr) => {
+					let new_carray_value = mem[addr as usize] & 0x1 > 0;
+					mem[addr as usize] >>= 1 | self.get_flag(StatusFlags::Carry) as u8;
+					self.set_flag(StatusFlags::Carry, new_carray_value);
+					self.update_zero_and_negative_flag(mem[addr as usize]);
+				}
+				Operand::Value(_) => panic!("Value operand not supported for ROR: {operand:?}"),
+			}
+		} else {
+			let new_carray_value = self.a & 0x1 > 0;
+			self.set_a(self.a >> 1 | self.get_flag(StatusFlags::Carry) as u8);
+			self.set_flag(StatusFlags::Carry, new_carray_value);
+		}
+	}
+	fn logical_shift_right(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+		if let Some(operand) = operand {
+			match operand {
+				Operand::Address(addr) => {
+					self.set_flag(StatusFlags::Carry, mem[addr as usize] & 0x1 > 0);
+					mem[addr as usize] >>= 1;
+					self.update_zero_and_negative_flag(mem[addr as usize]);
+				}
+				Operand::Value(_) => panic!("Value operand not supported for LSR: {operand:?}"),
+			}
+		} else {
+			self.set_flag(StatusFlags::Carry, self.a & 0x1 > 0);
+			self.set_a(self.a >> 1);
+		}
+	}
+	fn bit(&mut self, value: u8) {
 		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
+		self.set_flag(StatusFlags::Overflow, self.a & 0x40 > 0);
+		self.set_flag(StatusFlags::Zero, self.a & value == 0);
+	}
+	fn compare_register(&mut self, value: u8, register_value: u8) {
+		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
+		self.set_flag(StatusFlags::Carry, self.a > value);
+		self.set_flag(StatusFlags::Zero, self.a == value);
 	}
 	fn add_with_carry(&mut self, value: u8) {
 		let result = self.a as u16
@@ -308,6 +530,24 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, self.a == 0);
 		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
 		self.set_flag(StatusFlags::Carry, result & 0x100 > 0);
+		let result = if result & 0x100 > 0 {
+			result | 0xff00
+		} else {
+			result
+		} as i16;
+		self.set_flag(StatusFlags::Overflow, !(-128..=127).contains(&result));
+	}
+	fn sub_with_carry(&mut self, value: u8) {
+		let result = self.a as u16
+			+ if self.get_flag(StatusFlags::Carry) {
+				0
+			} else {
+				1 << 8
+			} - value as u16;
+		self.a = result as u8;
+		self.set_flag(StatusFlags::Zero, self.a == 0);
+		self.set_flag(StatusFlags::Negative, self.a & 0x80 > 0);
+		self.set_flag(StatusFlags::Carry, result & 0x100 != 0);
 		let result = if result & 0x100 > 0 {
 			result | 0xff00
 		} else {
@@ -394,7 +634,9 @@ mod test {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
-				AddressingMode::Immediate.get_operand(&mut cpu, &mem),
+				AddressingMode::Immediate
+					.get_operand(&mut cpu, &mem)
+					.unwrap(),
 				Operand::Value(mem[cpu.program_counter as usize - 1])
 			);
 		}
@@ -403,7 +645,9 @@ mod test {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
-				AddressingMode::ZeroPage.get_operand(&mut cpu, &mem),
+				AddressingMode::ZeroPage
+					.get_operand(&mut cpu, &mem)
+					.unwrap(),
 				Operand::Address(mem[cpu.program_counter as usize - 1] as u16)
 			);
 		}
@@ -412,13 +656,17 @@ mod test {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
 			assert_eq!(
-				AddressingMode::ZeroPageX.get_operand(&mut cpu, &mem),
+				AddressingMode::ZeroPageX
+					.get_operand(&mut cpu, &mem)
+					.unwrap(),
 				Operand::Address(
 					(mem[cpu.program_counter as usize - 1].wrapping_add(cpu.x)) as u16
 				)
 			);
 			assert_eq!(
-				AddressingMode::ZeroPageY.get_operand(&mut cpu, &mem),
+				AddressingMode::ZeroPageY
+					.get_operand(&mut cpu, &mem)
+					.unwrap(),
 				Operand::Address(
 					(mem[cpu.program_counter as usize - 1].wrapping_add(cpu.y)) as u16
 				)
@@ -428,7 +676,10 @@ mod test {
 		fn absolute() {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
-			if let Operand::Address(addr) = AddressingMode::Absolute.get_operand(&mut cpu, &mem) {
+			if let Operand::Address(addr) = AddressingMode::Absolute
+				.get_operand(&mut cpu, &mem)
+				.unwrap()
+			{
 				assert_eq!(addr % 256, (mem[cpu.program_counter as usize - 2]) as u16);
 				assert_eq!(addr >> 8, (mem[cpu.program_counter as usize - 1]) as u16);
 			} else {
@@ -453,7 +704,7 @@ mod test {
 					mem[cpu.program_counter as usize - 1 - pc_offset].wrapping_add(1),
 				),
 			};
-			if let (Operand::Address(addr_x), Operand::Address(addr_y)) = value {
+			if let (Some(Operand::Address(addr_x)), Some(Operand::Address(addr_y))) = value {
 				assert_eq!(addr_x % 256, get_bytes(cpu.x, 2).0 as u16,);
 				assert_eq!(addr_x >> 8, get_bytes(cpu.x, 2).1 as u16,);
 				assert_eq!(addr_y % 256, get_bytes(cpu.y, 0).0 as u16,);
@@ -466,8 +717,9 @@ mod test {
 		fn indexed_indirect() {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
-			if let Operand::Address(addr) =
-				AddressingMode::IndexedIndirect.get_operand(&mut cpu, &mem)
+			if let Operand::Address(addr) = AddressingMode::IndexedIndirect
+				.get_operand(&mut cpu, &mem)
+				.unwrap()
 			{
 				let zero_page_addr = mem[cpu.program_counter as usize - 1].wrapping_add(cpu.x);
 				assert_eq!(addr, read_word_from_zero_page(&mem, zero_page_addr));
@@ -479,8 +731,9 @@ mod test {
 		fn indirect_indexed() {
 			let mut mem = test_mem();
 			let mut cpu = test_cpu();
-			if let Operand::Address(addr) =
-				AddressingMode::IndirectIndexed.get_operand(&mut cpu, &mem)
+			if let Operand::Address(addr) = AddressingMode::IndirectIndexed
+				.get_operand(&mut cpu, &mem)
+				.unwrap()
 			{
 				let zero_page_addr =
 					read_word_from_zero_page(&mem, mem[cpu.program_counter as usize - 1]);
