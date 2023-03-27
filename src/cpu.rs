@@ -251,7 +251,18 @@ impl Cpu {
 			//Misc
 			Instruction(NOP, None) => self.program_counter += 1,
 			Instruction(LDA, Some(operand)) => self.set_a(pass_by_value(operand)),
+			Instruction(LDX, Some(operand)) => self.set_x(pass_by_value(operand)),
+			Instruction(LDY, Some(operand)) => self.set_y(pass_by_value(operand)),
 			Instruction(STA, Some(Address(addr))) => mem[addr as usize] = self.a,
+			Instruction(STX, Some(Address(addr))) => mem[addr as usize] = self.x,
+			Instruction(STY, Some(Address(addr))) => mem[addr as usize] = self.y,
+			//Transfer
+			Instruction(TAX, None) => self.set_x(self.a),
+			Instruction(TAY, None) => self.set_y(self.a),
+			Instruction(TSX, None) => self.set_x(self.stack_pointer),
+			Instruction(TXA, None) => self.set_a(self.x),
+			Instruction(TXS, None) => self.stack_pointer = self.x,
+			Instruction(TYA, None) => self.set_a(self.y),
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
 	}
@@ -344,6 +355,18 @@ impl Cpu {
 			0xb9 => instruction(LDA, AbsoluteY),
 			0xa1 => instruction(LDA, IndexedIndirect),
 			0xb1 => instruction(LDA, IndirectIndexed),
+			//Load X Register
+			0xa2 => instruction(LDX, Immediate),
+			0xa6 => instruction(LDX, ZeroPage),
+			0xb6 => instruction(LDX, ZeroPageY),
+			0xae => instruction(LDX, Absolute),
+			0xbe => instruction(LDX, AbsoluteY),
+			//Load Y Register
+			0xa0 => instruction(LDY, Immediate),
+			0xa4 => instruction(LDY, ZeroPage),
+			0xb4 => instruction(LDY, ZeroPageY),
+			0xac => instruction(LDY, Absolute),
+			0xbc => instruction(LDY, AbsoluteY),
 			//Logical Shift Right
 			0x4a => instruction(LSR, Implicit),
 			0x46 => instruction(LSR, ZeroPage),
@@ -390,6 +413,21 @@ impl Cpu {
 			0x99 => instruction(STA, AbsoluteY),
 			0x81 => instruction(STA, IndexedIndirect),
 			0x91 => instruction(STA, IndirectIndexed),
+			//Store X Register
+			0x86 => instruction(STX, ZeroPage),
+			0x96 => instruction(STX, ZeroPageY),
+			0x8e => instruction(STX, Absolute),
+			//Store Y Register
+			0x84 => instruction(STY, ZeroPage),
+			0x94 => instruction(STY, ZeroPageY),
+			0x8c => instruction(STY, Absolute),
+			//Transfer
+			0xaa => instruction(TAX, Implicit),
+			0xa8 => instruction(TAY, Implicit),
+			0xba => instruction(TSX, Implicit),
+			0x8a => instruction(TXA, Implicit),
+			0x9a => instruction(TXS, Implicit),
+			0x98 => instruction(TYA, Implicit),
 			//Clear Flags
 			0x18 => instruction(CLC, Implicit),
 			0xd8 => instruction(CLD, Implicit),
