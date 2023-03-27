@@ -200,6 +200,7 @@ impl Cpu {
 
 	pub fn execute(&mut self, mem: &mut [u8; 65536]) {
 		let instruction = self.decode(mem);
+		eprintln!("Executing {instruction:x?}");
 		use Operand::*;
 		use Operation::*;
 		let pass_by_value = |operand| match operand {
