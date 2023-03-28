@@ -1,5 +1,11 @@
 use std::fmt;
 
+pub const MEM_SIZE: usize = 0x10000;
+pub type Mem = [u8; MEM_SIZE];
+pub const fn new_mem() -> Mem {
+	[0; MEM_SIZE]
+}
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Copy, Debug)]
 enum Operation {
@@ -143,7 +149,7 @@ enum AddressingMode {
 }
 
 impl AddressingMode {
-	fn get_operand(&self, cpu: &mut Cpu, mem: &[u8; 65536]) -> Option<Operand> {
+	fn get_operand(&self, cpu: &mut Cpu, mem: &Mem) -> Option<Operand> {
 		use AddressingMode as AM;
 		use Operand::*;
 		Some(match self {
@@ -191,16 +197,16 @@ impl Cpu {
 			y: 0,
 			a: 0,
 			status: 0,
-			stack_pointer: 0xff,
+			stack_pointer: 0xfd,
 		}
 	}
-	pub fn reset(&mut self, mem: &[u8; 65536]) {
+	pub fn reset(&mut self, mem: &Mem) {
 		self.program_counter = self.fetch_word(mem);
 	}
 
-	pub fn execute(&mut self, mem: &mut [u8; 65536]) {
+	pub fn execute(&mut self, mem: &mut Mem) {
 		let instruction = self.decode(mem);
-		eprintln!("Executing {instruction:x?}");
+		eprintln!("[Execute] {instruction:x?}");
 		use Operand::*;
 		use Operation::*;
 		let pass_by_value = |operand| match operand {
@@ -255,7 +261,7 @@ impl Cpu {
 			Instruction(SED, None) => self.set_flag(StatusFlags::DecimalMode, true),
 			Instruction(SEI, None) => self.set_flag(StatusFlags::InterruptDisable, true),
 			//Misc
-			Instruction(NOP, None) => self.program_counter += 1,
+			Instruction(NOP, None) => (),
 			Instruction(LDA, Some(operand)) => self.set_a(pass_by_value(operand)),
 			Instruction(LDX, Some(operand)) => self.set_x(pass_by_value(operand)),
 			Instruction(LDY, Some(operand)) => self.set_y(pass_by_value(operand)),
@@ -297,26 +303,26 @@ impl Cpu {
 		}
 	}
 
-	fn push_word(&mut self, mem: &mut [u8; 65536], value: u16) {
+	fn push_word(&mut self, mem: &mut Mem, value: u16) {
 		self.push_byte(mem, (value >> 8) as u8);
 		self.push_byte(mem, value as u8);
 	}
-	fn pop_word(&mut self, mem: &mut [u8; 65536]) -> u16 {
+	fn pop_word(&mut self, mem: &mut Mem) -> u16 {
 		let low_byte = self.pop_byte(mem);
 		let high_byte = self.pop_byte(mem);
 		(high_byte as u16) << 8 | low_byte as u16
 	}
-	fn push_byte(&mut self, mem: &mut [u8; 65536], value: u8) {
+	fn push_byte(&mut self, mem: &mut Mem, value: u8) {
 		mem[self.stack_pointer as usize | 0x100] = value;
 		self.stack_pointer = self.stack_pointer.wrapping_sub(1);
 	}
-	fn pop_byte(&mut self, mem: &mut [u8; 65536]) -> u8 {
+	fn pop_byte(&mut self, mem: &mut Mem) -> u8 {
 		let value = mem[self.stack_pointer as usize | 0x100];
 		self.stack_pointer = self.stack_pointer.wrapping_add(1);
 		value
 	}
 
-	fn decode(&mut self, mem: &[u8; 65536]) -> Instruction {
+	fn decode(&mut self, mem: &Mem) -> Instruction {
 		let operation = self.fetch_byte(mem);
 		let mut instruction = |operation, addressing_mode: AddressingMode| {
 			Instruction(operation, addressing_mode.get_operand(self, mem))
@@ -506,7 +512,7 @@ impl Cpu {
 			0x68 => instruction(PLA, Implicit),
 			0x28 => instruction(PLP, Implicit),
 			_ => panic!(
-				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
+				"Invalid instruction found at location {:04x} => {operation:02x}",
 				self.program_counter - 1
 			),
 		}
@@ -519,17 +525,17 @@ impl Cpu {
 		self.status = (flag.get_bit_mask() | self.status) * value as u8
 			+ (!flag.get_bit_mask() & self.status) * !value as u8
 	}
-	fn fetch_word(&mut self, mem: &[u8; 65536]) -> u16 {
+	fn fetch_word(&mut self, mem: &Mem) -> u16 {
 		let address = self.program_counter;
 		self.program_counter += 2;
 		let word = read_word(mem, address);
-		eprintln!("Fetched word: {:04x} from: {address:04x}", word);
+		eprintln!("[Fetch] word: {:04x} from: {address:04x}", word);
 		word
 	}
-	fn fetch_byte(&mut self, mem: &[u8; 65536]) -> u8 {
+	fn fetch_byte(&mut self, mem: &Mem) -> u8 {
 		let address = self.program_counter;
 		eprintln!(
-			"Fetched byte: {:02x} from: {address:04x}",
+			"[Fetch] byte: {:02x} from: {address:04x}",
 			mem[address as usize]
 		);
 		self.program_counter += 1;
@@ -551,7 +557,7 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, value == 0);
 		self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
 	}
-	fn arithmetic_shift_left(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+	fn arithmetic_shift_left(&mut self, mem: &mut Mem, operand: Option<Operand>) {
 		if let Some(operand) = operand {
 			match operand {
 				Operand::Address(addr) => {
@@ -566,7 +572,7 @@ impl Cpu {
 			self.set_a(self.a >> 1);
 		}
 	}
-	fn rotate_left(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+	fn rotate_left(&mut self, mem: &mut Mem, operand: Option<Operand>) {
 		if let Some(operand) = operand {
 			match operand {
 				Operand::Address(addr) => {
@@ -583,7 +589,7 @@ impl Cpu {
 			self.set_flag(StatusFlags::Carry, new_carray_value);
 		}
 	}
-	fn rotate_right(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+	fn rotate_right(&mut self, mem: &mut Mem, operand: Option<Operand>) {
 		if let Some(operand) = operand {
 			match operand {
 				Operand::Address(addr) => {
@@ -600,7 +606,7 @@ impl Cpu {
 			self.set_flag(StatusFlags::Carry, new_carray_value);
 		}
 	}
-	fn logical_shift_right(&mut self, mem: &mut [u8; 65536], operand: Option<Operand>) {
+	fn logical_shift_right(&mut self, mem: &mut Mem, operand: Option<Operand>) {
 		if let Some(operand) = operand {
 			match operand {
 				Operand::Address(addr) => {
@@ -621,8 +627,8 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, self.a & value == 0);
 	}
 	fn compare_register(&mut self, value: u8, register_value: u8) {
-		self.set_flag(StatusFlags::Negative, register_value & 0x80 > 0);
-		self.set_flag(StatusFlags::Carry, register_value > value);
+		self.set_flag(StatusFlags::Negative, (register_value - value) & 0x80 > 0);
+		self.set_flag(StatusFlags::Carry, register_value >= value);
 		self.set_flag(StatusFlags::Zero, register_value == value);
 	}
 	fn add_with_carry(&mut self, value: u8) {
@@ -689,13 +695,17 @@ impl StatusFlags {
 	}
 }
 
-fn read_word(mem: &[u8; 65536], address: u16) -> u16 {
+fn write_byte(mem: &mut Mem, address: u16, value: u8) {
+	mem[address as usize] = value;
+}
+
+fn read_word(mem: &Mem, address: u16) -> u16 {
 	let lower_byte = mem[address as usize] as u16;
 	let higher_byte = mem[(address + 1) as usize] as u16;
 	higher_byte << 8 | lower_byte
 }
 
-fn read_word_from_zero_page(mem: &[u8; 65536], address: u8) -> u16 {
+fn read_word_from_zero_page(mem: &Mem, address: u8) -> u16 {
 	let lower_byte = mem[address as usize] as u16;
 	let higher_byte = mem[address.wrapping_add(1) as usize] as u16;
 	higher_byte << 8 | lower_byte
@@ -703,10 +713,13 @@ fn read_word_from_zero_page(mem: &[u8; 65536], address: u8) -> u16 {
 
 impl fmt::Debug for Cpu {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let mut output = String::from("\n│CPU:\n");
-		output.push_str("│A │X │Y │NV B DIZC│SP  │PC  │\n");
+		let mut output = String::from("\n");
+		output.push_str("╭───╮\n");
+		output.push_str("│CPU│\n");
+		output.push_str("├───┼──┬──┬─────────┬────┬────╮\n");
+		output.push_str("│A  │X │Y │NV B DIZC│SP  │PC  │\n");
 		output.push_str(&format!(
-			"│{:02x}│{:02x}│{:02x}│{:04b} {:04b}│{:04x}│{:04x}│\n",
+			"│{:02x} │{:02x}│{:02x}│{:04b} {:04b}│{:04x}│{:04x}│\n",
 			self.a,
 			self.x,
 			self.y,
@@ -715,6 +728,7 @@ impl fmt::Debug for Cpu {
 			self.stack_pointer,
 			self.program_counter,
 		));
+		output.push_str("╰───┴──┴──┴─────────┴────┴────╯\n");
 		write!(f, "{output}")
 	}
 }
@@ -730,8 +744,8 @@ mod test {
 		cpu.y = random();
 		cpu
 	}
-	fn test_mem() -> [u8; 65536] {
-		let mut mem = [0; 65536];
+	fn test_mem() -> Mem {
+		let mut mem = new_mem();
 		mem.iter_mut().for_each(|x| *x = random());
 		mem
 	}
