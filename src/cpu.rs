@@ -207,6 +207,12 @@ impl Cpu {
 			Value(x) => x,
 			Address(x) => mem[x as usize],
 		};
+		let mut branch = |flag: StatusFlags, condition: bool, offset: u8| {
+			if self.get_flag(flag) == condition {
+				self.program_counter = (self.program_counter as i16 + (offset as i8) as i16) as u16
+			}
+		};
+
 		match instruction {
 			//Logical Operations
 			Instruction(ADC, Some(operand)) => self.add_with_carry(pass_by_value(operand)),
@@ -263,6 +269,17 @@ impl Cpu {
 			Instruction(TXA, None) => self.set_a(self.x),
 			Instruction(TXS, None) => self.stack_pointer = self.x,
 			Instruction(TYA, None) => self.set_a(self.y),
+			//Branching
+			Instruction(BCC, Some(Value(offset))) => branch(StatusFlags::Carry, false, offset),
+			Instruction(BCS, Some(Value(offset))) => branch(StatusFlags::Carry, true, offset),
+			Instruction(BEQ, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
+			Instruction(BMI, Some(Value(offset))) => branch(StatusFlags::Negative, true, offset),
+			Instruction(BNE, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
+			Instruction(BPL, Some(Value(offset))) => branch(StatusFlags::Negative, false, offset),
+			Instruction(BVC, Some(Value(offset))) => branch(StatusFlags::Overflow, false, offset),
+			Instruction(BVS, Some(Value(offset))) => branch(StatusFlags::Overflow, true, offset),
+			//Jump
+			Instruction(JMP, Some(Address(addr))) => self.program_counter = addr,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
 	}
@@ -437,6 +454,18 @@ impl Cpu {
 			0x38 => instruction(SEC, Implicit),
 			0xf8 => instruction(SED, Implicit),
 			0x78 => instruction(SEI, Implicit),
+			//Branch Instructions
+			0x90 => instruction(BCC, Relative),
+			0xb0 => instruction(BCS, Relative),
+			0xf0 => instruction(BEQ, Relative),
+			0x30 => instruction(BMI, Relative),
+			0xd0 => instruction(BNE, Relative),
+			0x10 => instruction(BPL, Relative),
+			0x50 => instruction(BVC, Relative),
+			0x70 => instruction(BVS, Relative),
+			//Jump
+			0x4c => instruction(JMP, Absolute),
+			0x6c => instruction(JMP, Indirect),
 			_ => panic!(
 				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
 				self.program_counter - 1
