@@ -278,10 +278,42 @@ impl Cpu {
 			Instruction(BPL, Some(Value(offset))) => branch(StatusFlags::Negative, false, offset),
 			Instruction(BVC, Some(Value(offset))) => branch(StatusFlags::Overflow, false, offset),
 			Instruction(BVS, Some(Value(offset))) => branch(StatusFlags::Overflow, true, offset),
+			//Stack operations
+			Instruction(JSR, Some(Address(addr))) => {
+				self.push_word(mem, self.program_counter);
+				self.program_counter = addr;
+			}
+			Instruction(RTS, None) => self.program_counter = self.pop_word(mem),
+			Instruction(PHA, None) => self.push_byte(mem, self.a),
+			Instruction(PHP, None) => self.push_byte(mem, self.status),
+			Instruction(PLA, None) => {
+				let data = self.pop_byte(mem);
+				self.set_a(data)
+			}
+			Instruction(PLP, None) => self.status = self.pop_byte(mem),
 			//Jump
 			Instruction(JMP, Some(Address(addr))) => self.program_counter = addr,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
+	}
+
+	fn push_word(&mut self, mem: &mut [u8; 65536], value: u16) {
+		self.push_byte(mem, (value >> 8) as u8);
+		self.push_byte(mem, value as u8);
+	}
+	fn pop_word(&mut self, mem: &mut [u8; 65536]) -> u16 {
+		let low_byte = self.pop_byte(mem);
+		let high_byte = self.pop_byte(mem);
+		(high_byte as u16) << 8 | low_byte as u16
+	}
+	fn push_byte(&mut self, mem: &mut [u8; 65536], value: u8) {
+		mem[self.stack_pointer as usize | 0x100] = value;
+		self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+	}
+	fn pop_byte(&mut self, mem: &mut [u8; 65536]) -> u8 {
+		let value = mem[self.stack_pointer as usize | 0x100];
+		self.stack_pointer = self.stack_pointer.wrapping_add(1);
+		value
 	}
 
 	fn decode(&mut self, mem: &[u8; 65536]) -> Instruction {
@@ -466,6 +498,13 @@ impl Cpu {
 			//Jump
 			0x4c => instruction(JMP, Absolute),
 			0x6c => instruction(JMP, Indirect),
+			//Stack operations
+			0x20 => instruction(JSR, Absolute),
+			0x60 => instruction(RTS, Implicit),
+			0x48 => instruction(PHA, Implicit),
+			0x08 => instruction(PHP, Implicit),
+			0x68 => instruction(PLA, Implicit),
+			0x28 => instruction(PLP, Implicit),
 			_ => panic!(
 				"Invalid instruction found at location 0x{:04x} => 0x{operation:02x}",
 				self.program_counter - 1
