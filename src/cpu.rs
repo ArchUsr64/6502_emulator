@@ -212,16 +212,13 @@ pub struct Cpu {
 impl Cpu {
 	pub fn new() -> Self {
 		Self {
-			program_counter: 0xfffc,
+			program_counter: 0x0600,
 			x: 0,
 			y: 0,
 			a: 0,
 			status: 0,
-			stack_pointer: 0xfd,
+			stack_pointer: 0xff,
 		}
-	}
-	pub fn reset(&mut self, mem: &Memory) {
-		self.program_counter = self.fetch_word(mem);
 	}
 
 	pub fn execute(&mut self, mem: &mut Memory) {

@@ -21,9 +21,8 @@ async fn main() {
 fn read_mem(file_path: &'static str) -> [u8; MEMORY_SIZE] {
 	let rom = std::fs::read(file_path).unwrap();
 	let mut data = [0; MEMORY_SIZE];
-	assert_eq!(rom.len(), MEMORY_SIZE, "Invalid ROM size");
 	for (index, val) in rom.iter().enumerate() {
-		data[index] = *val;
+		data[0x600 + index] = *val;
 	}
 	data
 }
