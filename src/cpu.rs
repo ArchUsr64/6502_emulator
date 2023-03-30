@@ -337,8 +337,8 @@ impl Cpu {
 		self.stack_pointer -= 1;
 	}
 	fn pop_byte(&mut self, mem: &mut Memory) -> u8 {
-		let value = mem.read_byte(self.stack_pointer as u16 | 0x100);
 		self.stack_pointer += 1;
+		let value = mem.read_byte(self.stack_pointer as u16 | 0x100);
 		value
 	}
 
