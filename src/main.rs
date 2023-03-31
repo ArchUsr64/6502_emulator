@@ -9,10 +9,34 @@ async fn main() {
 	let data = read_mem("a.out");
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
+	use std::time;
+	let mut frame_time = time::Duration::from_millis(0);
 	loop {
+		let start = time::Instant::now();
+		//Window Decorations
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
-		let pixel_size = (screen_size.0 / 32.).min(screen_size.1 / 32.);
+		let min_screen_dimension = screen_size.0.min(screen_size.1);
+		draw_text(
+			format!("{:.2}", frame_time.as_micros() as f32 / 1000.).as_str(),
+			0.,
+			0.5 * min_screen_dimension * 0.1,
+			min_screen_dimension * 0.1,
+			WHITE,
+		);
+		let pixel_size = 0.95 * min_screen_dimension / 32.;
+		let gap = (
+			screen_size.0 - 32. * pixel_size,
+			screen_size.1 - 32. * pixel_size,
+		);
+		draw_rectangle_lines(
+			(gap.0 / 2.) - 2.,
+			(gap.1 / 2.) - 2.,
+			(pixel_size * 32.) + 4.,
+			(pixel_size * 32.) + 4.,
+			5.,
+			WHITE,
+		);
 		(0..32).for_each(|i| {
 			(0..32).for_each(|j| {
 				let color = |byte| {
@@ -24,8 +48,8 @@ async fn main() {
 					)
 				};
 				draw_rectangle(
-					j as f32 * pixel_size,
-					i as f32 * pixel_size,
+					gap.0 / 2. + j as f32 * pixel_size,
+					gap.1 / 2. + i as f32 * pixel_size,
 					pixel_size,
 					pixel_size,
 					color(mem.data[SCREEN_MEMORY_START + (i << 5) + j]),
@@ -33,9 +57,7 @@ async fn main() {
 			})
 		});
 		next_frame().await;
-		// mem.data[0xfe] = rand::gen_range(0, u8::MAX);
-		// cpu.execute(&mut mem);
-		// println!("{cpu:?}");
+		frame_time = start.elapsed();
 	}
 }
 
@@ -45,8 +67,5 @@ fn read_mem(file_path: &'static str) -> [u8; MEMORY_SIZE] {
 	for (index, val) in rom.iter().enumerate() {
 		data[index] = *val;
 	}
-	data.iter_mut()
-		.enumerate()
-		.for_each(|(index, val)| *val = index as u8);
 	data
 }
