@@ -63,6 +63,7 @@ async fn main() {
 		);
 		mem.data[0xfe] = rand::gen_range(0, u8::MAX);
 		cpu.execute(&mut mem);
+		#[cfg(feature = "debug")]
 		println!("{cpu:?}");
 		next_frame().await;
 	}

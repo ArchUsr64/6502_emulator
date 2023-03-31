@@ -1,6 +1,6 @@
 use std::fmt;
 
-const STACK_LOWEST_ADDRESS: u16 = 0xff << 2;
+const STACK_LOWEST_ADDRESS: u16 = 0x100;
 pub const MEMORY_SIZE: usize = 0x10000;
 pub struct Memory {
 	pub data: [u8; MEMORY_SIZE],
@@ -10,6 +10,7 @@ impl Memory {
 		Self { data }
 	}
 	fn read_byte(&self, address: u16) -> u8 {
+		#[cfg(feature = "debug")]
 		eprintln!(
 			"[Read] {:02x} from {:04x}",
 			self.data[address as usize], address
@@ -22,6 +23,7 @@ impl Memory {
 		higher_byte << 8 | lower_byte
 	}
 	fn write_byte(&mut self, address: u16, value: u8) {
+		#[cfg(feature = "debug")]
 		eprintln!("[Write] {:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
@@ -229,6 +231,7 @@ impl Cpu {
 
 	pub fn execute(&mut self, mem: &mut Memory) {
 		let instruction = self.decode(mem);
+		#[cfg(feature = "debug")]
 		eprintln!("[Execute] {instruction:x?}");
 		use Operand::*;
 		use Operation::*;
@@ -238,7 +241,12 @@ impl Cpu {
 		};
 		let mut branch = |flag: StatusFlags, condition: bool, offset: u8| {
 			if self.get_flag(flag) == condition {
+				#[cfg(feature = "debug")]
+				eprintln!("[Branch taken]");
 				self.program_counter = (self.program_counter as i16 + (offset as i8) as i16) as u16
+			} else {
+				#[cfg(feature = "debug")]
+				eprintln!("[Branch not taken]");
 			}
 		};
 
@@ -303,7 +311,7 @@ impl Cpu {
 			Instruction(BCS, Some(Value(offset))) => branch(StatusFlags::Carry, true, offset),
 			Instruction(BEQ, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
 			Instruction(BMI, Some(Value(offset))) => branch(StatusFlags::Negative, true, offset),
-			Instruction(BNE, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
+			Instruction(BNE, Some(Value(offset))) => branch(StatusFlags::Zero, false, offset),
 			Instruction(BPL, Some(Value(offset))) => branch(StatusFlags::Negative, false, offset),
 			Instruction(BVC, Some(Value(offset))) => branch(StatusFlags::Overflow, false, offset),
 			Instruction(BVS, Some(Value(offset))) => branch(StatusFlags::Overflow, true, offset),
@@ -341,8 +349,7 @@ impl Cpu {
 	}
 	fn pop_byte(&mut self, mem: &mut Memory) -> u8 {
 		self.stack_pointer += 1;
-		let value = mem.read_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS);
-		value
+		mem.read_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS)
 	}
 
 	fn decode(&mut self, mem: &Memory) -> Instruction {
@@ -552,11 +559,13 @@ impl Cpu {
 		let address = self.program_counter;
 		self.program_counter += 2;
 		let word = mem.read_word(address);
+		#[cfg(feature = "debug")]
 		eprintln!("[Fetch] word: {:04x} from: {address:04x}", word);
 		word
 	}
 	fn fetch_byte(&mut self, mem: &Memory) -> u8 {
 		let address = self.program_counter;
+		#[cfg(feature = "debug")]
 		eprintln!(
 			"[Fetch] byte: {:02x} from: {address:04x}",
 			mem.read_byte(address)
