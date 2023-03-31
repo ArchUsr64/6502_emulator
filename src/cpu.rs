@@ -1,10 +1,11 @@
 use std::fmt;
 
+const STACK_LOWEST_ADDRESS: u16 = 0xff << 2;
 pub const MEMORY_SIZE: usize = 0x10000;
-pub struct Memory{
+pub struct Memory {
 	pub data: [u8; MEMORY_SIZE],
 }
-impl Memory{
+impl Memory {
 	pub fn new(data: [u8; MEMORY_SIZE]) -> Self {
 		Self { data }
 	}
@@ -212,7 +213,7 @@ pub struct Cpu {
 impl Cpu {
 	pub fn new() -> Self {
 		Self {
-			program_counter: 0x0600,
+			program_counter: 0,
 			x: 0,
 			y: 0,
 			a: 0,
@@ -330,12 +331,12 @@ impl Cpu {
 		(high_byte as u16) << 8 | low_byte as u16
 	}
 	fn push_byte(&mut self, mem: &mut Memory, value: u8) {
-		mem.write_byte(self.stack_pointer as u16 | 0x100, value);
+		mem.write_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS, value);
 		self.stack_pointer -= 1;
 	}
 	fn pop_byte(&mut self, mem: &mut Memory) -> u8 {
 		self.stack_pointer += 1;
-		let value = mem.read_byte(self.stack_pointer as u16 | 0x100);
+		let value = mem.read_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS);
 		value
 	}
 
