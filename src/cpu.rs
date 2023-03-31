@@ -254,7 +254,7 @@ impl Cpu {
 			//Logical Operations
 			Instruction(ADC, Some(operand)) => self.add_with_carry(pass_by_value(operand)),
 			Instruction(AND, Some(operand)) => self.set_a(self.a & pass_by_value(operand)),
-			Instruction(ASL, operand) => self.arithmetic_shift_left(mem, operand),
+			Instruction(ASL, operand) => self.arithemetic_shift_left(mem, operand),
 			Instruction(BIT, Some(operand)) => self.bit(pass_by_value(operand)),
 			Instruction(CMP, Some(operand)) => {
 				self.compare_register(pass_by_value(operand), self.a)
@@ -280,8 +280,8 @@ impl Cpu {
 			}
 			Instruction(LSR, operand) => self.logical_shift_right(mem, operand),
 			Instruction(ORA, Some(operand)) => self.set_a(self.a | pass_by_value(operand)),
-			Instruction(ROL, operand) => self.rotate_right(mem, operand),
-			Instruction(ROR, operand) => self.rotate_left(mem, operand),
+			Instruction(ROL, operand) => self.rotate_left(mem, operand),
+			Instruction(ROR, operand) => self.rotate_right(mem, operand),
 			Instruction(SBC, Some(operand)) => self.sub_with_carry(pass_by_value(operand)),
 			//Flags
 			Instruction(CLC, None) => self.set_flag(StatusFlags::Carry, false),
@@ -589,72 +589,66 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, value == 0);
 		self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
 	}
-	fn arithmetic_shift_left(&mut self, mem: &mut Memory, operand: Option<Operand>) {
-		if let Some(operand) = operand {
-			match operand {
-				Operand::Address(addr) => {
-					self.set_flag(StatusFlags::Carry, mem.read_byte(addr) & 0x80 > 0);
-					// mem[addr as usize] >>= 1;
-					todo!();
-					self.update_zero_and_negative_flag(mem.read_byte(addr));
-				}
-				Operand::Value(_) => panic!("Value operand not supported for ASL: {operand:?}"),
-			}
+	fn arithemetic_shift_left(&mut self, mem: &mut Memory, operand: Option<Operand>) {
+		let value = match operand {
+			Some(Operand::Address(addr)) => mem.read_byte(addr),
+			None => self.a,
+			_ => panic!("Value operand not supported for ASL"),
+		};
+		self.set_flag(StatusFlags::Carry, value & 0x80 > 0);
+		let result = value << 1;
+		if let Some(Operand::Address(addr)) = operand {
+			self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
+			mem.write_byte(addr, result);
 		} else {
-			self.set_flag(StatusFlags::Carry, self.a & 0x80 > 0);
-			self.set_a(self.a >> 1);
-		}
-	}
-	fn rotate_left(&mut self, mem: &mut Memory, operand: Option<Operand>) {
-		if let Some(operand) = operand {
-			match operand {
-				Operand::Address(addr) => {
-					let new_carray_value = mem.read_byte(addr) & 0x1 > 0;
-					// mem[addr as usize] <<= 1 | self.get_flag(StatusFlags::Carry) as u8;
-					todo!();
-					self.set_flag(StatusFlags::Carry, new_carray_value);
-					self.update_zero_and_negative_flag(mem.read_byte(addr));
-				}
-				Operand::Value(_) => panic!("Value operand not supported for ROL: {operand:?}"),
-			}
-		} else {
-			let new_carray_value = self.a & 0x1 > 0;
-			self.set_a(self.a << 1 | self.get_flag(StatusFlags::Carry) as u8);
-			self.set_flag(StatusFlags::Carry, new_carray_value);
-		}
-	}
-	fn rotate_right(&mut self, mem: &mut Memory, operand: Option<Operand>) {
-		if let Some(operand) = operand {
-			match operand {
-				Operand::Address(addr) => {
-					let new_carray_value = mem.read_byte(addr) & 0x1 > 0;
-					// mem[addr as usize] >>= 1 | self.get_flag(StatusFlags::Carry) as u8;
-					todo!();
-					self.set_flag(StatusFlags::Carry, new_carray_value);
-					self.update_zero_and_negative_flag(mem.read_byte(addr));
-				}
-				Operand::Value(_) => panic!("Value operand not supported for ROR: {operand:?}"),
-			}
-		} else {
-			let new_carray_value = self.a & 0x1 > 0;
-			self.set_a(self.a >> 1 | self.get_flag(StatusFlags::Carry) as u8);
-			self.set_flag(StatusFlags::Carry, new_carray_value);
+			self.set_a(result);
 		}
 	}
 	fn logical_shift_right(&mut self, mem: &mut Memory, operand: Option<Operand>) {
-		if let Some(operand) = operand {
-			match operand {
-				Operand::Address(addr) => {
-					self.set_flag(StatusFlags::Carry, mem.read_byte(addr) & 0x1 > 0);
-					// mem[addr as usize] >>= 1;
-					todo!();
-					self.update_zero_and_negative_flag(mem.read_byte(addr));
-				}
-				Operand::Value(_) => panic!("Value operand not supported for LSR: {operand:?}"),
-			}
+		let value = match operand {
+			Some(Operand::Address(addr)) => mem.read_byte(addr),
+			None => self.a,
+			_ => panic!("Value operand not supported for LSR"),
+		};
+		self.set_flag(StatusFlags::Carry, value & 0x80 > 0);
+		let result = value >> 1;
+		self.update_zero_and_negative_flag(value);
+		if let Some(Operand::Address(addr)) = operand {
+			mem.write_byte(addr, result);
 		} else {
-			self.set_flag(StatusFlags::Carry, self.a & 0x1 > 0);
-			self.set_a(self.a >> 1);
+			self.set_a(result);
+		}
+	}
+	fn rotate_left(&mut self, mem: &mut Memory, operand: Option<Operand>) {
+		let value = match operand {
+			Some(Operand::Address(addr)) => mem.read_byte(addr),
+			None => self.a,
+			_ => panic!("Value operand not supported for ROL"),
+		};
+		let old_carry = self.get_flag(StatusFlags::Carry);
+		self.set_flag(StatusFlags::Carry, value & 0x80 > 0);
+		let result = (value << 1) | old_carry as u8;
+		if let Some(Operand::Address(addr)) = operand {
+			self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
+			mem.write_byte(addr, result);
+		} else {
+			self.set_a(result);
+		}
+	}
+	fn rotate_right(&mut self, mem: &mut Memory, operand: Option<Operand>) {
+		let value = match operand {
+			Some(Operand::Address(addr)) => mem.read_byte(addr),
+			None => self.a,
+			_ => panic!("Value operand not supported for ROR"),
+		};
+		let old_carry = self.get_flag(StatusFlags::Carry);
+		self.set_flag(StatusFlags::Carry, value & 0x1 > 0);
+		let result = (value >> 1) | (old_carry as u8) << 7;
+		if let Some(Operand::Address(addr)) = operand {
+			self.set_flag(StatusFlags::Negative, value & 0x80 > 0);
+			mem.write_byte(addr, result);
+		} else {
+			self.set_a(result);
 		}
 	}
 	fn bit(&mut self, value: u8) {
