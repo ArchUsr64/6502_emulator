@@ -10,6 +10,10 @@ impl Memory {
 		Self { data }
 	}
 	fn read_byte(&self, address: u16) -> u8 {
+		eprintln!(
+			"[Read] {:02x} from {:04x}",
+			self.data[address as usize], address
+		);
 		self.data[address as usize]
 	}
 	fn read_word(&self, address: u16) -> u16 {
@@ -18,6 +22,7 @@ impl Memory {
 		higher_byte << 8 | lower_byte
 	}
 	fn write_byte(&mut self, address: u16, value: u8) {
+		eprintln!("[Write] {:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
 
