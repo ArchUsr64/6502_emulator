@@ -9,11 +9,21 @@ async fn main() {
 	let data = read_mem("a.out");
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
+	use std::time;
+	let mut frame_time = time::Duration::from_millis(0);
 	loop {
+		let start = time::Instant::now();
 		//Window Decorations
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
+		draw_text(
+			format!("{:.2}", frame_time.as_micros() as f32 / 1000.).as_str(),
+			0.,
+			0.5 * min_screen_dimension * 0.1,
+			min_screen_dimension * 0.1,
+			WHITE,
+		);
 		let pixel_size = 0.95 * min_screen_dimension / 32.;
 		let gap = (
 			screen_size.0 - 32. * pixel_size,
@@ -46,26 +56,8 @@ async fn main() {
 				);
 			})
 		});
-		let text_scalar = 0.1;
-		draw_text(
-			format!("FPS: {}", get_fps()).as_str(),
-			0.,
-			1.5 * min_screen_dimension * text_scalar,
-			min_screen_dimension * text_scalar,
-			WHITE,
-		);
-		draw_text(
-			format!("{:.1} ms", get_frame_time() * 1000.).as_str(),
-			0.,
-			0.5 * min_screen_dimension * text_scalar,
-			min_screen_dimension * text_scalar,
-			WHITE,
-		);
-		mem.data[0xfe] = rand::gen_range(0, u8::MAX);
-		cpu.execute(&mut mem);
-		#[cfg(feature = "debug")]
-		println!("{cpu:?}");
 		next_frame().await;
+		frame_time = start.elapsed();
 	}
 }
 
