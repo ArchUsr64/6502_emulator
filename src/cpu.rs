@@ -11,7 +11,7 @@ impl Memory {
 	}
 	fn read_byte(&self, address: u16) -> u8 {
 		eprintln!(
-			"[Read] {:02x} from {:04x}",
+			"[Read]\t\t{:02x} from {:04x}",
 			self.data[address as usize], address
 		);
 		self.data[address as usize]
@@ -22,7 +22,7 @@ impl Memory {
 		higher_byte << 8 | lower_byte
 	}
 	fn write_byte(&mut self, address: u16, value: u8) {
-		eprintln!("[Write] {:02x} at {:04x}", value, address);
+		eprintln!("[Write]\t\t{:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
 
@@ -229,7 +229,7 @@ impl Cpu {
 
 	pub fn execute(&mut self, mem: &mut Memory) {
 		let instruction = self.decode(mem);
-		eprintln!("[Execute] {instruction:x?}");
+		eprintln!("[Execute]\t{instruction:x?}");
 		use Operand::*;
 		use Operation::*;
 		let pass_by_value = |operand| match operand {
@@ -552,13 +552,13 @@ impl Cpu {
 		let address = self.program_counter;
 		self.program_counter += 2;
 		let word = mem.read_word(address);
-		eprintln!("[Fetch] word: {:04x} from: {address:04x}", word);
+		eprintln!("[Fetch]\t\tword: {:04x} from: {address:04x}", word);
 		word
 	}
 	fn fetch_byte(&mut self, mem: &Memory) -> u8 {
 		let address = self.program_counter;
 		eprintln!(
-			"[Fetch] byte: {:02x} from: {address:04x}",
+			"[Fetch]\t\tbyte: {:02x} from: {address:04x}",
 			mem.read_byte(address)
 		);
 		self.program_counter += 1;
