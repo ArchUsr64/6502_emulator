@@ -56,6 +56,7 @@ async fn main() {
 				);
 			})
 		});
+		cpu.execute(&mut mem);
 		next_frame().await;
 		frame_time = start.elapsed();
 	}
