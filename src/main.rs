@@ -12,6 +12,7 @@ async fn main() {
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
+		mem.data[0xfe] = rand::gen_range(u8::MIN, u8::MAX);
 		let start = time::Instant::now();
 		//Window Decorations
 		clear_background(BLACK);
