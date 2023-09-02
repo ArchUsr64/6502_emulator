@@ -275,8 +275,8 @@ impl Cpu {
 			}
 			Instruction(LSR, operand) => self.logical_shift_right(mem, operand),
 			Instruction(ORA, Some(operand)) => self.set_a(self.a | pass_by_value(operand)),
-			Instruction(ROL, operand) => self.rotate_right(mem, operand),
-			Instruction(ROR, operand) => self.rotate_left(mem, operand),
+			Instruction(ROL, operand) => self.rotate_left(mem, operand),
+			Instruction(ROR, operand) => self.rotate_right(mem, operand),
 			Instruction(SBC, Some(operand)) => self.sub_with_carry(pass_by_value(operand)),
 			//Flags
 			Instruction(CLC, None) => self.set_flag(StatusFlags::Carry, false),
@@ -624,16 +624,19 @@ impl Cpu {
 			match operand {
 				Operand::Address(addr) => {
 					let new_carray_value = mem.read_byte(addr) & 0x1 > 0;
-					// mem[addr as usize] >>= 1 | self.get_flag(StatusFlags::Carry) as u8;
-					todo!();
+					mem.modify(addr, |x| {
+						x >> 1 | (self.get_flag(StatusFlags::Carry) as u8) << 7
+					});
+					self.set_flag(StatusFlags::Negative, self.get_flag(StatusFlags::Carry));
 					self.set_flag(StatusFlags::Carry, new_carray_value);
-					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
 				Operand::Value(_) => panic!("Value operand not supported for ROR: {operand:?}"),
 			}
 		} else {
 			let new_carray_value = self.a & 0x1 > 0;
-			self.set_a(self.a >> 1 | self.get_flag(StatusFlags::Carry) as u8);
+			println!("A: {:x}, New Carry: {new_carray_value}", self.a);
+			self.a = self.a >> 1 | (self.get_flag(StatusFlags::Carry) as u8) << 7;
+			self.set_flag(StatusFlags::Negative, self.get_flag(StatusFlags::Carry));
 			self.set_flag(StatusFlags::Carry, new_carray_value);
 		}
 	}
@@ -642,8 +645,7 @@ impl Cpu {
 			match operand {
 				Operand::Address(addr) => {
 					self.set_flag(StatusFlags::Carry, mem.read_byte(addr) & 0x1 > 0);
-					// mem[addr as usize] >>= 1;
-					todo!();
+					mem.modify(addr, |x| x >> 1);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
 				Operand::Value(_) => panic!("Value operand not supported for LSR: {operand:?}"),
