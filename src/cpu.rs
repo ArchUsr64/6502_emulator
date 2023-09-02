@@ -10,6 +10,7 @@ impl Memory {
 		Self { data }
 	}
 	fn read_byte(&self, address: u16) -> u8 {
+		#[cfg(feature = "debug_logs")]
 		eprintln!(
 			"[Read]\t\t{:02x} from {:04x}",
 			self.data[address as usize], address
@@ -22,6 +23,7 @@ impl Memory {
 		higher_byte << 8 | lower_byte
 	}
 	fn write_byte(&mut self, address: u16, value: u8) {
+		#[cfg(feature = "debug_logs")]
 		eprintln!("[Write]\t\t{:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
@@ -229,6 +231,7 @@ impl Cpu {
 
 	pub fn execute(&mut self, mem: &mut Memory) {
 		let instruction = self.decode(mem);
+		#[cfg(feature = "debug_logs")]
 		eprintln!("[Execute]\t{instruction:x?}");
 		use Operand::*;
 		use Operation::*;
@@ -552,11 +555,13 @@ impl Cpu {
 		let address = self.program_counter;
 		self.program_counter += 2;
 		let word = mem.read_word(address);
+		#[cfg(feature = "debug_logs")]
 		eprintln!("[Fetch]\t\tword: {:04x} from: {address:04x}", word);
 		word
 	}
 	fn fetch_byte(&mut self, mem: &Memory) -> u8 {
 		let address = self.program_counter;
+		#[cfg(feature = "debug_logs")]
 		eprintln!(
 			"[Fetch]\t\tbyte: {:02x} from: {address:04x}",
 			mem.read_byte(address)
