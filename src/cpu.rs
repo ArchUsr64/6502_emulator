@@ -1,6 +1,6 @@
 use std::fmt;
 
-const STACK_LOWEST_ADDRESS: u16 = 0xff << 2;
+const STACK_LOWEST_ADDRESS: u16 = 0x100;
 pub const MEMORY_SIZE: usize = 0x10000;
 pub struct Memory {
 	pub data: [u8; MEMORY_SIZE],
