@@ -3,7 +3,7 @@ use cpu::*;
 
 use macroquad::prelude::*;
 const SCREEN_MEMORY_START: usize = 0xfb00;
-const INPUT_MEMORY_LOCATION: usize = 0xfc;
+const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
 
 #[macroquad::main("BasicShapes")]
