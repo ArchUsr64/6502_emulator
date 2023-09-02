@@ -6,6 +6,8 @@ const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
 
+const CYCLES_PER_FRAME: usize = 1_000;
+
 #[macroquad::main("BasicShapes")]
 async fn main() {
 	let data = read_mem("a.out");
@@ -14,14 +16,17 @@ async fn main() {
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
-		println!("{cpu:?}");
-		mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
-		// Left, Down, Up, Right
-		mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
-		mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
-		mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
-		mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
 		let start = time::Instant::now();
+		println!("{cpu:?}");
+		(0..CYCLES_PER_FRAME).for_each(|_| {
+			cpu.execute(&mut mem);
+			mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
+			// Left, Down, Up, Right
+			mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
+		});
 		//Window Decorations
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
@@ -65,7 +70,6 @@ async fn main() {
 				);
 			})
 		});
-		cpu.execute(&mut mem);
 		next_frame().await;
 		frame_time = start.elapsed();
 	}
