@@ -1,4 +1,7 @@
-loop:
+start:
+	jmp main
+	.org $0200
+main:
 	lda $fe
 	sta $f000,x
 	lda $fe
@@ -8,4 +11,4 @@ loop:
 	lda $fe
 	sta $f300,x
 	inx
-	jmp loop
+	jmp main
