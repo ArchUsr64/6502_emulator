@@ -2,7 +2,9 @@ mod cpu;
 use cpu::*;
 
 use macroquad::prelude::*;
-const SCREEN_MEMORY_START: usize = 0xf000;
+const SCREEN_MEMORY_START: usize = 0xfb00;
+const INPUT_MEMORY_LOCATION: usize = 0xfc;
+const RNG_MEMORY_LOCATION: usize = 0xff;
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
@@ -12,7 +14,13 @@ async fn main() {
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
-		mem.data[0xfe] = rand::gen_range(u8::MIN, u8::MAX);
+		println!("{cpu:?}");
+		mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
+		// Left, Down, Up, Right
+		mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
+		mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
+		mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
+		mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
 		let start = time::Instant::now();
 		//Window Decorations
 		clear_background(BLACK);
