@@ -590,31 +590,31 @@ impl Cpu {
 			match operand {
 				Operand::Address(addr) => {
 					self.set_flag(StatusFlags::Carry, mem.read_byte(addr) & 0x80 > 0);
-					// mem[addr as usize] >>= 1;
-					todo!();
+					mem.modify(addr, |x| x << 1);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
 				Operand::Value(_) => panic!("Value operand not supported for ASL: {operand:?}"),
 			}
 		} else {
 			self.set_flag(StatusFlags::Carry, self.a & 0x80 > 0);
-			self.set_a(self.a >> 1);
+			self.set_a(self.a << 1);
 		}
 	}
 	fn rotate_left(&mut self, mem: &mut Memory, operand: Option<Operand>) {
 		if let Some(operand) = operand {
 			match operand {
 				Operand::Address(addr) => {
-					let new_carray_value = mem.read_byte(addr) & 0x1 > 0;
-					// mem[addr as usize] <<= 1 | self.get_flag(StatusFlags::Carry) as u8;
-					todo!();
+					let new_carray_value = mem.read_byte(addr) >> 7 > 0;
+					mem.modify(addr, |x| {
+						x << 1 | (self.get_flag(StatusFlags::Carry) as u8) << 7
+					});
 					self.set_flag(StatusFlags::Carry, new_carray_value);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
 				Operand::Value(_) => panic!("Value operand not supported for ROL: {operand:?}"),
 			}
 		} else {
-			let new_carray_value = self.a & 0x1 > 0;
+			let new_carray_value = self.a >> 7 > 0;
 			self.set_a(self.a << 1 | self.get_flag(StatusFlags::Carry) as u8);
 			self.set_flag(StatusFlags::Carry, new_carray_value);
 		}
