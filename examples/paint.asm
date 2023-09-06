@@ -49,20 +49,14 @@ render_pixel:
 ; Y %= 32
 y_mod_32:
 	tya
-	clc
-	sbc #32
+	and #$1f
 	tay
-	cpy #32
-	bcs y_mod_32
 
 ; X %= 32
 x_mod_32:
 	txa
-	clc
-	sbc #32
+	and #$1f
 	tax
-	cpx #32
-	bcs x_mod_32
 
 	; X = (Y & 0b111) << 5 + X
 	tya
