@@ -6,7 +6,7 @@ const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
 
-const CYCLES_PER_FRAME: usize = 1_000;
+const CYCLES_PER_FRAME: usize = 20;
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
