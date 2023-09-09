@@ -181,28 +181,28 @@ enum AddressingMode {
 impl AddressingMode {
 	fn get_operand(&self, cpu: &mut Cpu, mem: &Memory) -> Option<Operand> {
 		use AddressingMode as AM;
-		use Operand::*;
+		use Operand as Op;
 		Some(match self {
-			AM::Immediate => Value(cpu.fetch_byte(mem)),
-			AM::ZeroPage => Address(cpu.fetch_byte(mem) as u16),
-			AM::ZeroPageX => Address(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16),
-			AM::ZeroPageY => Address(cpu.fetch_byte(mem).wrapping_add(cpu.y) as u16),
-			AM::Absolute => Address(cpu.fetch_word(mem)),
-			AM::AbsoluteX => Address(cpu.fetch_word(mem).wrapping_add(cpu.x as u16)),
-			AM::AbsoluteY => Address(cpu.fetch_word(mem).wrapping_add(cpu.y as u16)),
-			AM::Indirect => Address(mem.read_word(cpu.fetch_word(mem))),
+			AM::Immediate => Op::Value(cpu.fetch_byte(mem)),
+			AM::ZeroPage => Op::Address(cpu.fetch_byte(mem) as u16),
+			AM::ZeroPageX => Op::Address(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16),
+			AM::ZeroPageY => Op::Address(cpu.fetch_byte(mem).wrapping_add(cpu.y) as u16),
+			AM::Absolute => Op::Address(cpu.fetch_word(mem)),
+			AM::AbsoluteX => Op::Address(cpu.fetch_word(mem).wrapping_add(cpu.x as u16)),
+			AM::AbsoluteY => Op::Address(cpu.fetch_word(mem).wrapping_add(cpu.y as u16)),
+			AM::Indirect => Op::Address(mem.read_word(cpu.fetch_word(mem))),
 			//(Indirect, X)
 			//Zero page address specified at the next byte + X as indexing register
 			AM::IndexedIndirect => {
-				Address(mem.read_word(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16))
+				Op::Address(mem.read_word(cpu.fetch_byte(mem).wrapping_add(cpu.x) as u16))
 			}
 			//(Indirect), Y
 			//16-bit address specified at the zero page at next byte address + Y as indexing register
-			AM::IndirectIndexed => Address({
+			AM::IndirectIndexed => Op::Address({
 				let address_from_zero_page = mem.read_word(cpu.fetch_byte(mem) as u16);
 				address_from_zero_page.wrapping_add(cpu.y as u16)
 			}),
-			AM::Relative => Value(cpu.fetch_byte(mem)),
+			AM::Relative => Op::Value(cpu.fetch_byte(mem)),
 			AM::Implicit => return None,
 		})
 	}
@@ -233,11 +233,10 @@ impl Cpu {
 		let instruction = self.decode(mem);
 		#[cfg(feature = "debug_logs")]
 		eprintln!("[Execute]\t{instruction:x?}");
-		use Operand::*;
-		use Operation::*;
+		use Operation as Op;
 		let pass_by_value = |operand| match operand {
-			Value(x) => x,
-			Address(x) => mem.read_byte(x),
+			Operand::Value(x) => x,
+			Operand::Address(x) => mem.read_byte(x),
 		};
 		let mut branch = |flag: StatusFlags, condition: bool, offset: u8| {
 			if self.get_flag(flag) == condition {
@@ -245,86 +244,103 @@ impl Cpu {
 			}
 		};
 
+		use Operand as Od;
 		match instruction {
 			//Logical Operations
-			Instruction(ADC, Some(operand)) => self.add_with_carry(pass_by_value(operand)),
-			Instruction(AND, Some(operand)) => self.set_a(self.a & pass_by_value(operand)),
-			Instruction(ASL, operand) => self.arithmetic_shift_left(mem, operand),
-			Instruction(BIT, Some(operand)) => self.bit(pass_by_value(operand)),
-			Instruction(CMP, Some(operand)) => {
+			Instruction(Op::ADC, Some(operand)) => self.add_with_carry(pass_by_value(operand)),
+			Instruction(Op::AND, Some(operand)) => self.set_a(self.a & pass_by_value(operand)),
+			Instruction(Op::ASL, operand) => self.arithmetic_shift_left(mem, operand),
+			Instruction(Op::BIT, Some(operand)) => self.bit(pass_by_value(operand)),
+			Instruction(Op::CMP, Some(operand)) => {
 				self.compare_register(pass_by_value(operand), self.a)
 			}
-			Instruction(CPX, Some(operand)) => {
+			Instruction(Op::CPX, Some(operand)) => {
 				self.compare_register(pass_by_value(operand), self.x)
 			}
-			Instruction(CPY, Some(operand)) => {
+			Instruction(Op::CPY, Some(operand)) => {
 				self.compare_register(pass_by_value(operand), self.y)
 			}
-			Instruction(DEC, Some(Address(addr))) => {
+			Instruction(Op::DEC, Some(Od::Address(addr))) => {
 				mem.modify(addr, |x| x - 1);
 				self.update_zero_and_negative_flag(mem.read_byte(addr))
 			}
-			Instruction(DEX, None) => self.set_x(self.x - 1),
-			Instruction(DEY, None) => self.set_y(self.y - 1),
-			Instruction(INX, None) => self.set_x(self.x + 1),
-			Instruction(INY, None) => self.set_y(self.y + 1),
-			Instruction(EOR, Some(operand)) => self.set_a(self.a ^ pass_by_value(operand)),
-			Instruction(INC, Some(Address(addr))) => {
+			Instruction(Op::DEX, None) => self.set_x(self.x - 1),
+			Instruction(Op::DEY, None) => self.set_y(self.y - 1),
+			Instruction(Op::INX, None) => self.set_x(self.x + 1),
+			Instruction(Op::INY, None) => self.set_y(self.y + 1),
+			Instruction(Op::EOR, Some(operand)) => self.set_a(self.a ^ pass_by_value(operand)),
+			Instruction(Op::INC, Some(Od::Address(addr))) => {
 				mem.modify(addr, |x| x + 1);
 				self.update_zero_and_negative_flag(mem.read_byte(addr))
 			}
-			Instruction(LSR, operand) => self.logical_shift_right(mem, operand),
-			Instruction(ORA, Some(operand)) => self.set_a(self.a | pass_by_value(operand)),
-			Instruction(ROL, operand) => self.rotate_left(mem, operand),
-			Instruction(ROR, operand) => self.rotate_right(mem, operand),
-			Instruction(SBC, Some(operand)) => self.sub_with_carry(pass_by_value(operand)),
+			Instruction(Op::LSR, operand) => self.logical_shift_right(mem, operand),
+			Instruction(Op::ORA, Some(operand)) => self.set_a(self.a | pass_by_value(operand)),
+			Instruction(Op::ROL, operand) => self.rotate_left(mem, operand),
+			Instruction(Op::ROR, operand) => self.rotate_right(mem, operand),
+			Instruction(Op::SBC, Some(operand)) => self.sub_with_carry(pass_by_value(operand)),
 			//Flags
-			Instruction(CLC, None) => self.set_flag(StatusFlags::Carry, false),
-			Instruction(CLD, None) => self.set_flag(StatusFlags::DecimalMode, false),
-			Instruction(CLI, None) => self.set_flag(StatusFlags::InterruptDisable, false),
-			Instruction(CLV, None) => self.set_flag(StatusFlags::Overflow, false),
-			Instruction(SEC, None) => self.set_flag(StatusFlags::Carry, true),
-			Instruction(SED, None) => self.set_flag(StatusFlags::DecimalMode, true),
-			Instruction(SEI, None) => self.set_flag(StatusFlags::InterruptDisable, true),
+			Instruction(Op::CLC, None) => self.set_flag(StatusFlags::Carry, false),
+			Instruction(Op::CLD, None) => self.set_flag(StatusFlags::DecimalMode, false),
+			Instruction(Op::CLI, None) => self.set_flag(StatusFlags::InterruptDisable, false),
+			Instruction(Op::CLV, None) => self.set_flag(StatusFlags::Overflow, false),
+			Instruction(Op::SEC, None) => self.set_flag(StatusFlags::Carry, true),
+			Instruction(Op::SED, None) => self.set_flag(StatusFlags::DecimalMode, true),
+			Instruction(Op::SEI, None) => self.set_flag(StatusFlags::InterruptDisable, true),
 			//Misc
-			Instruction(NOP, None) => (),
-			Instruction(LDA, Some(operand)) => self.set_a(pass_by_value(operand)),
-			Instruction(LDX, Some(operand)) => self.set_x(pass_by_value(operand)),
-			Instruction(LDY, Some(operand)) => self.set_y(pass_by_value(operand)),
-			Instruction(STA, Some(Address(addr))) => mem.write_byte(addr, self.a),
-			Instruction(STX, Some(Address(addr))) => mem.write_byte(addr, self.x),
-			Instruction(STY, Some(Address(addr))) => mem.write_byte(addr, self.y),
+			Instruction(Op::NOP, None) => (),
+			Instruction(Op::LDA, Some(operand)) => self.set_a(pass_by_value(operand)),
+			Instruction(Op::LDX, Some(operand)) => self.set_x(pass_by_value(operand)),
+			Instruction(Op::LDY, Some(operand)) => self.set_y(pass_by_value(operand)),
+			Instruction(Op::STA, Some(Od::Address(addr))) => mem.write_byte(addr, self.a),
+			Instruction(Op::STX, Some(Od::Address(addr))) => mem.write_byte(addr, self.x),
+			Instruction(Op::STY, Some(Od::Address(addr))) => mem.write_byte(addr, self.y),
 			//Transfer
-			Instruction(TAX, None) => self.set_x(self.a),
-			Instruction(TAY, None) => self.set_y(self.a),
-			Instruction(TSX, None) => self.set_x(self.stack_pointer),
-			Instruction(TXA, None) => self.set_a(self.x),
-			Instruction(TXS, None) => self.stack_pointer = self.x,
-			Instruction(TYA, None) => self.set_a(self.y),
+			Instruction(Op::TAX, None) => self.set_x(self.a),
+			Instruction(Op::TAY, None) => self.set_y(self.a),
+			Instruction(Op::TSX, None) => self.set_x(self.stack_pointer),
+			Instruction(Op::TXA, None) => self.set_a(self.x),
+			Instruction(Op::TXS, None) => self.stack_pointer = self.x,
+			Instruction(Op::TYA, None) => self.set_a(self.y),
 			//Branching
-			Instruction(BCC, Some(Value(offset))) => branch(StatusFlags::Carry, false, offset),
-			Instruction(BCS, Some(Value(offset))) => branch(StatusFlags::Carry, true, offset),
-			Instruction(BEQ, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
-			Instruction(BMI, Some(Value(offset))) => branch(StatusFlags::Negative, true, offset),
-			Instruction(BNE, Some(Value(offset))) => branch(StatusFlags::Zero, true, offset),
-			Instruction(BPL, Some(Value(offset))) => branch(StatusFlags::Negative, false, offset),
-			Instruction(BVC, Some(Value(offset))) => branch(StatusFlags::Overflow, false, offset),
-			Instruction(BVS, Some(Value(offset))) => branch(StatusFlags::Overflow, true, offset),
+			Instruction(Op::BCC, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Carry, false, offset)
+			}
+			Instruction(Op::BCS, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Carry, true, offset)
+			}
+			Instruction(Op::BEQ, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Zero, true, offset)
+			}
+			Instruction(Op::BMI, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Negative, true, offset)
+			}
+			Instruction(Op::BNE, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Zero, true, offset)
+			}
+			Instruction(Op::BPL, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Negative, false, offset)
+			}
+			Instruction(Op::BVC, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Overflow, false, offset)
+			}
+			Instruction(Op::BVS, Some(Od::Value(offset))) => {
+				branch(StatusFlags::Overflow, true, offset)
+			}
 			//Stack operations
-			Instruction(JSR, Some(Address(addr))) => {
+			Instruction(Op::JSR, Some(Od::Address(addr))) => {
 				self.push_word(mem, self.program_counter);
 				self.program_counter = addr;
 			}
-			Instruction(RTS, None) => self.program_counter = self.pop_word(mem),
-			Instruction(PHA, None) => self.push_byte(mem, self.a),
-			Instruction(PHP, None) => self.push_byte(mem, self.status),
-			Instruction(PLA, None) => {
+			Instruction(Op::RTS, None) => self.program_counter = self.pop_word(mem),
+			Instruction(Op::PHA, None) => self.push_byte(mem, self.a),
+			Instruction(Op::PHP, None) => self.push_byte(mem, self.status),
+			Instruction(Op::PLA, None) => {
 				let data = self.pop_byte(mem);
 				self.set_a(data)
 			}
-			Instruction(PLP, None) => self.status = self.pop_byte(mem),
+			Instruction(Op::PLP, None) => self.status = self.pop_byte(mem),
 			//Jump
-			Instruction(JMP, Some(Address(addr))) => self.program_counter = addr,
+			Instruction(Op::JMP, Some(Od::Address(addr))) => self.program_counter = addr,
 			_ => panic!("Invalid instruction: {:x?}", instruction),
 		}
 	}
