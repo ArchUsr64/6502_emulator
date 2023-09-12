@@ -13,20 +13,25 @@ async fn main() {
 	let data = read_mem("a.out");
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
+	let mut paused = false;
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
+		if is_mouse_button_pressed(MouseButton::Left) {
+			paused = !paused;
+		}
 		let start = time::Instant::now();
-		println!("{cpu:?}");
-		(0..CYCLES_PER_FRAME).for_each(|_| {
-			cpu.execute(&mut mem);
-			mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
-			// Left, Down, Up, Right
-			mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
-			mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
-			mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
-			mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
-		});
+		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
+			(0..CYCLES_PER_FRAME).for_each(|_| {
+				cpu.execute(&mut mem);
+				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
+				// Left, Down, Up, Right
+				mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
+			});
+		}
 		// Window Decorations
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());

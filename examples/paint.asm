@@ -11,22 +11,22 @@ main:
 	; Handle inputs
 	lda $fb
 	cmp #$0
-	bne not_left
+	beq not_left
 	dex
 not_left:
 	lda $fc
 	cmp #$0
-	bne not_down
+	beq not_down
 	iny
 not_down:
 	lda $fd
 	cmp #$0
-	bne not_up
+	beq not_up
 	dey
 not_up:
 	lda $fe
 	cmp #$0
-	bne not_right
+	beq not_right
 	inx
 
 not_right:
