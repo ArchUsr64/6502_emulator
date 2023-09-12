@@ -1,5 +1,7 @@
 ; Global game state:
 	; Snake size: 0x10
+		; One more than the size to be rendered
+		; The tail is used to erase off the remaining elements
 	; Facing: 0x11
 		; 1 -> Left
 		; 2 -> Down
@@ -27,6 +29,7 @@ main:
 	lda #$1
 	sta $11
 	; Snake head coords
+	; (10, 10), (10, 11), (11, 11), (12, 11)
 	lda #$10
 	sta $12
 	lda #$10
@@ -78,19 +81,85 @@ store_input:
 	sta $11
 
 input_handled:
-	; Set random color for the pixel
-	; lda $ff
-	; jsr render_pixel
+	jsr update_snake
 	jsr render_apple
 	jsr render_snake
 	jmp loop
 
 ; Update snake position
 update_snake:
+
 	; Compute new head position based on facing direction
 	; NewHead.x -> $e2
 	; NewHead.y -> $e3
+	lda $12
+	sta $e2
+	lda $13
+	sta $e3
+	lda $11
+	cmp #$1
+	bne snake_not_left
+	dec $e2
+	jmp direction_done
+snake_not_left:
+	cmp #$2
+	bne snake_not_down
+	inc $e3
+	jmp direction_done
+snake_not_down:
+	cmp #$3
+	bne snake_not_up
+	dec $e3
+	jmp direction_done
+snake_not_up:
+	cmp #$4
+	bne direction_done
+	inc $e2
+direction_done:
+	lda $e2
+	and #$1f
+	sta $e2
+	lda $e3
+	and #$1f
+	sta $e3
+
 	; Move each value two positions down the memory
+	; using temporary coordinate at 0xe8, 0xe9
+	; length iterator at 0xe0
+	lda $10
+	sta $e0
+iter_snake:
+	; A goes from 0 to tail - 1
+	lda $10
+	sbc $e0
+	asl
+	tax
+	tay
+	iny
+
+	lda $12,x
+	sta $e4
+	lda $12,y
+	sta $e5
+
+	; Move the X coordinate
+	lda $e2
+	sta $12,x
+	; Move the Y coordinate
+	lda $e3
+	sta $12,y
+
+	lda $e4
+	sta $e2
+	lda $e5
+	sta $e3
+
+	dec $e0
+	lda $e0
+	cmp #$0
+	bne iter_snake
+
+	rts
 
 ; Render the snake to screen
 render_snake:
@@ -102,6 +171,7 @@ render_snake:
 	lda $10
 	sta $e0
 iter:
+	; A goes from 0 to tail - 1
 	lda $10
 	sbc $e0
 	asl
@@ -113,17 +183,30 @@ iter:
 	tax
 	lda $12,y
 	tay
+
+	; Erase tail
+	lda $e0
+	cmp #$1
+	bne not_tail
+	lda #$0
+	sta $e1
+
+not_tail:
 	lda $e1
+	stx $e4
+	sty $e5
 	jsr render_pixel
 
 	; Store green color once the head has been rendered
 	lda #$10
 	sta $e1
 
+
 	dec $e0
 	lda $e0
 	cmp #$0
 	bne iter
+
 	; .byte $97, $23
 	rts
 
