@@ -159,6 +159,15 @@ iter_snake:
 	cmp #$0
 	bne iter_snake
 
+	; Check for apple collision
+	lda $12
+	cmp $a0
+	bne return
+	lda $13
+	cmp $a1
+	bne return
+	inc $10
+return:
 	rts
 
 ; Render the snake to screen
