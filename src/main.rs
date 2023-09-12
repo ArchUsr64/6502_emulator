@@ -27,7 +27,7 @@ async fn main() {
 			mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
 			mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
 		});
-		//Window Decorations
+		// Window Decorations
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
