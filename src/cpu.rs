@@ -315,7 +315,7 @@ impl Cpu {
 				branch(StatusFlags::Negative, true, offset)
 			}
 			Instruction(Op::BNE, Some(Od::Value(offset))) => {
-				branch(StatusFlags::Zero, true, offset)
+				branch(StatusFlags::Zero, false, offset)
 			}
 			Instruction(Op::BPL, Some(Od::Value(offset))) => {
 				branch(StatusFlags::Negative, false, offset)
