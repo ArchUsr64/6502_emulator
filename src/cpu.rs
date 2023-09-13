@@ -256,16 +256,16 @@ impl Cpu {
 				self.compare_register(pass_by_value(operand), self.y)
 			}
 			Instruction(Op::DEC, Some(Od::Address(addr))) => {
-				mem.modify(addr, |x| x - 1);
+				mem.modify(addr, |x| x.wrapping_sub(1));
 				self.update_zero_and_negative_flag(mem.read_byte(addr))
 			}
-			Instruction(Op::DEX, None) => self.set_x(self.x - 1),
-			Instruction(Op::DEY, None) => self.set_y(self.y - 1),
-			Instruction(Op::INX, None) => self.set_x(self.x + 1),
-			Instruction(Op::INY, None) => self.set_y(self.y + 1),
+			Instruction(Op::DEX, None) => self.set_x(self.x.wrapping_sub(1)),
+			Instruction(Op::DEY, None) => self.set_y(self.y.wrapping_sub(1)),
+			Instruction(Op::INX, None) => self.set_x(self.x.wrapping_add(1)),
+			Instruction(Op::INY, None) => self.set_y(self.y.wrapping_add(1)),
 			Instruction(Op::EOR, Some(operand)) => self.set_a(self.a ^ pass_by_value(operand)),
 			Instruction(Op::INC, Some(Od::Address(addr))) => {
-				mem.modify(addr, |x| x + 1);
+				mem.modify(addr, |x| x.wrapping_add(1));
 				self.update_zero_and_negative_flag(mem.read_byte(addr))
 			}
 			Instruction(Op::LSR, operand) => self.logical_shift_right(mem, operand),
@@ -672,7 +672,10 @@ impl Cpu {
 		self.set_flag(StatusFlags::Zero, self.a & value == 0);
 	}
 	fn compare_register(&mut self, value: u8, register_value: u8) {
-		self.set_flag(StatusFlags::Negative, (register_value - value) & 0x80 > 0);
+		self.set_flag(
+			StatusFlags::Negative,
+			register_value.wrapping_sub(value) & 0x80 > 0,
+		);
 		self.set_flag(StatusFlags::Carry, register_value >= value);
 		self.set_flag(StatusFlags::Zero, register_value == value);
 	}
