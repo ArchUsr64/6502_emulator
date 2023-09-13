@@ -6,6 +6,33 @@ https://github.com/ArchUsr64/6502_emulator/assets/83179501/17add7d3-14d8-47e4-bf
 
 Source Code for [snake](examples/snake.asm)
 
+## Build and Execution
+1. Clone the repository  
+   `git clone https://github.com/ArchUsr64/6502_emulator`
+2. Change to newly created directory  
+   `cd 6502_emulator`
+4. Assemble one of the provided examples under `examples/` using [vasm](http://www.compilers.de/vasm.html) or just use the provided `a.out`  
+   `vasm6502_oldstyle -Fbin -dotdir examples/snake.asm`  
+   This should build an `a.out` file which the emulator can understand.
+5. Run the emulator  
+   `cargo run -- a.out`
+6. For an explaination of all possible arguments  
+   `cargo run -- -help`
+
+## Usage
+### Debugging
+Left click on the window to pause the execution at any time or start in paused state via the `-s` flag. Once paused, use the `Space` key to execute instructions step by step. Left click again to resume execution.  
+Additionally the `-e` option can be used to specify the number of instructions to execute on the emulated CPU per frame.
+### Logging
+Use the `-v` flag to specify the level of verbosity for log output:
+| `-v` | Log Level |
+| -- | -- |
+| 0 | Error |
+| 1 | Info |
+| 2 | Debug |
+### Inputs
+Currently only four inputs are supported, `LEFT`, `DOWN`, `UP` and `RIGHT`. Both the arrow keys and the WASD cluster can be used to activate their respective inputs.
+
 ## Memory Layout  
 | Address | Description |
 | -- | -- |
@@ -23,28 +50,6 @@ MSB      LSB
  |   |   |
  RRR GGG BB
 ```
-
-## Build and Execution
-1. Assemble one of the provided examples under `examples/` using [vasm](http://www.compilers.de/vasm.html)  
-   `vasm6502_oldstyle -Fbin -dotdir examples/snake.asm`  
-   This should build an `a.out` file which the emulator can understand.
-2. Run the emulator  
-   `cargo run -- a.out`
-3. For an explaination of all the possible arguments  
-   `cargo run -- -help`
-
-## Usage
-### Debugging
-Left click on the window to pause the execution at any time or start in paused state via the `-s` flag. Once paused, use the `Space` key to execute instructions step by step. Left click again to resume execution.
-### Logging
-Use the `-v` flag to specify the level of verbosity for log output:
-| `-v` | Log Level |
-| -- | -- |
-| 0 | Error |
-| 1 | Info |
-| 2 | Debug |
-### Inputs
-Currently only four inputs are supported, `LEFT`, `DOWN`, `UP` and `RIGHT`. Both the arrow keys and the WASD cluster can be used to activate their respective inputs.
 
 ## Screenshots
 #### [examples/rgb.asm](examples/rgb.asm)  
