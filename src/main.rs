@@ -6,7 +6,7 @@ const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
 
-const CYCLES_PER_FRAME: usize = 20;
+const EXECUTIONS_PER_FRAME: usize = 100;
 
 #[macroquad::main("BasicShapes")]
 async fn main() {
@@ -22,7 +22,7 @@ async fn main() {
 		}
 		let start = time::Instant::now();
 		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
-			(0..CYCLES_PER_FRAME).for_each(|_| {
+			(0..EXECUTIONS_PER_FRAME).for_each(|_| {
 				cpu.execute(&mut mem);
 				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
 				// Left, Down, Up, Right
