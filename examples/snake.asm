@@ -18,9 +18,9 @@ start:
 ; Initialization stuff
 main:
 	; Position for the apple
-	lda #12
+	lda #$c
 	sta $a0
-	lda #12
+	lda #$c
 	sta $a1
 	; Snake size
 	lda #$4
@@ -167,7 +167,17 @@ iter_snake:
 	cmp $a1
 	bne return
 	inc $10
+	jsr update_apple
 return:
+	rts
+
+update_apple:
+	lda $ff
+	and #$1f
+	sta $a0
+	lda $ff
+	and #$1f
+	sta $a1
 	rts
 
 ; Render the snake to screen
