@@ -58,7 +58,7 @@ async fn main() {
 		if is_mouse_button_pressed(MouseButton::Left) {
 			paused = !paused;
 		}
-		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
+		if !paused || is_key_pressed(KeyCode::Space) {
 			(0..args.executions_per_frame).for_each(|_| {
 				info!("{cpu:?}");
 				cpu.execute(&mut mem);

@@ -344,7 +344,7 @@ impl Cpu {
 		self.push_byte(mem, (value >> 8) as u8);
 		self.push_byte(mem, value as u8);
 	}
-	fn pop_word(&mut self, mem: &mut Memory) -> u16 {
+	fn pop_word(&mut self, mem: &Memory) -> u16 {
 		let low_byte = self.pop_byte(mem);
 		let high_byte = self.pop_byte(mem);
 		(high_byte as u16) << 8 | low_byte as u16
@@ -353,10 +353,9 @@ impl Cpu {
 		mem.write_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS, value);
 		self.stack_pointer -= 1;
 	}
-	fn pop_byte(&mut self, mem: &mut Memory) -> u8 {
+	fn pop_byte(&mut self, mem: &Memory) -> u8 {
 		self.stack_pointer += 1;
-		let value = mem.read_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS);
-		value
+		mem.read_byte(self.stack_pointer as u16 | STACK_LOWEST_ADDRESS)
 	}
 
 	fn decode(&mut self, mem: &Memory) -> Instruction {
