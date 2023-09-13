@@ -6,14 +6,32 @@ const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
 
-const EXECUTIONS_PER_FRAME: usize = 100;
+use clap::Parser;
+
+/// A simple 6502 emulator
+#[derive(Parser, Debug)]
+struct Args {
+	/// Path to the 6502 binary
+	#[arg(default_value = "a.out")]
+	executable: String,
+	/// Debug Verbosity level [0-3]
+	#[arg(short, long, default_value_t = 0)]
+	verbosity: u8,
+	/// Start in debug mode
+	#[arg(short, long, default_value_t = false)]
+	start_debug: bool,
+	/// Number of CPU instructions to execute per frame
+	#[arg(short, long, default_value_t = 100)]
+	executions_per_frame: u16,
+}
 
 #[macroquad::main("6502 Emulator")]
 async fn main() {
-	let data = read_mem("a.out");
+	let args = Args::parse();
+	let data = read_mem(&args.executable);
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
-	let mut paused = false;
+	let mut paused = args.start_debug;
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
@@ -22,7 +40,10 @@ async fn main() {
 		}
 		let start = time::Instant::now();
 		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
-			(0..EXECUTIONS_PER_FRAME).for_each(|_| {
+			(0..args.executions_per_frame).for_each(|_| {
+				if args.verbosity > 0 {
+					println!("{cpu:?}");
+				}
 				cpu.execute(&mut mem);
 				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
 				// Left, Down, Up, Right
@@ -80,7 +101,7 @@ async fn main() {
 	}
 }
 
-fn read_mem(file_path: &'static str) -> [u8; MEMORY_SIZE] {
+fn read_mem(file_path: &str) -> [u8; MEMORY_SIZE] {
 	let rom = std::fs::read(file_path).unwrap();
 	let mut data = [0; MEMORY_SIZE];
 	for (index, val) in rom.iter().enumerate() {
