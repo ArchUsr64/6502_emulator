@@ -68,6 +68,15 @@ async fn main() {
 			min_screen_dimension * 0.1,
 			WHITE,
 		);
+		if paused {
+			draw_text(
+				format!("PAUSED",).as_str(),
+				0.,
+				1.5 * min_screen_dimension * 0.1,
+				min_screen_dimension * 0.1,
+				WHITE,
+			);
+		}
 		let pixel_size = 0.95 * min_screen_dimension / 32.;
 		let gap = (
 			screen_size.0 - 32. * pixel_size,
