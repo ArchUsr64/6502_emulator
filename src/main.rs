@@ -35,10 +35,10 @@ async fn main() {
 	use std::time;
 	let mut frame_time = time::Duration::from_millis(0);
 	loop {
+		let start = time::Instant::now();
 		if is_mouse_button_pressed(MouseButton::Left) {
 			paused = !paused;
 		}
-		let start = time::Instant::now();
 		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
 			(0..args.executions_per_frame).for_each(|_| {
 				if args.verbosity > 0 {
@@ -58,7 +58,11 @@ async fn main() {
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
 		draw_text(
-			format!("{:.2}", frame_time.as_micros() as f32 / 1000.).as_str(),
+			format!(
+				"FPS: {:.0}",
+				(frame_time.as_micros() as f32 / 1_000_000.).recip()
+			)
+			.as_str(),
 			0.,
 			0.5 * min_screen_dimension * 0.1,
 			min_screen_dimension * 0.1,
