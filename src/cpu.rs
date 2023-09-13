@@ -59,8 +59,6 @@ enum Operation {
 	BNE,
 	/// Branch if Positive
 	BPL,
-	/// Force Interrupt
-	BRK,
 	/// Branch if Overflow Clear
 	BVC,
 	/// Branch if Overflow Set
@@ -121,8 +119,6 @@ enum Operation {
 	ROL,
 	/// Rotate Right
 	ROR,
-	/// Return from Interrupt
-	RTI,
 	/// Return from Subroutine
 	RTS,
 	/// Subtract with Carry
@@ -726,7 +722,6 @@ enum StatusFlags {
 	Zero,
 	InterruptDisable,
 	DecimalMode,
-	Break,
 	Overflow,
 	Negative,
 }
@@ -738,7 +733,6 @@ impl StatusFlags {
 			Self::Zero => 1,
 			Self::InterruptDisable => 2,
 			Self::DecimalMode => 3,
-			Self::Break => 4,
 			Self::Overflow => 6,
 			Self::Negative => 7,
 		}
@@ -751,7 +745,7 @@ impl fmt::Debug for Cpu {
 		output.push_str("╭───╮\n");
 		output.push_str("│CPU│\n");
 		output.push_str("├───┼──┬──┬─────────┬────┬────╮\n");
-		output.push_str("│A  │X │Y │NV B DIZC│SP  │PC  │\n");
+		output.push_str("│A  │X │Y │NV   DIZC│SP  │PC  │\n");
 		output.push_str(&format!(
 			"│{:02x} │{:02x}│{:02x}│{:04b} {:04b}│{:04x}│{:04x}│\n",
 			self.a,
