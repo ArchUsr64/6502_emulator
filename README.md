@@ -1,4 +1,5 @@
 # 6502 Emulator
+
 Emulates a MOS 6502 chip with DMA graphics and input capibalities
 
 https://github.com/ArchUsr64/6502_emulator/assets/83179501/17add7d3-14d8-47e4-bffd-77c96e9250e6  
@@ -31,9 +32,17 @@ MSB      LSB
    `cargo run -- a.out`
 3. For an explaination of all the possible arguments  
    `cargo run -- -help`
+   
 ## Screenshots
 #### [examples/rgb.asm](examples/rgb.asm)  
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/9a6a5d93-d806-431a-af00-5bded1c93793)  
 <br>
 #### [examples/ferris.asm](examples/ferris.asm)  
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/8fcb2804-92d0-43a3-abd1-ef00b96d773d)
+
+## TODO
+- [X] Graphics Support
+- [ ] Deploy with Wasm
+- [X] Input Events
+- [ ] Interrupt Support
+- [ ] Integrated Debugger
