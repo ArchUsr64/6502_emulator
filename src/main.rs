@@ -8,7 +8,7 @@ const RNG_MEMORY_LOCATION: usize = 0xff;
 
 const EXECUTIONS_PER_FRAME: usize = 100;
 
-#[macroquad::main("BasicShapes")]
+#[macroquad::main("6502 Emulator")]
 async fn main() {
 	let data = read_mem("a.out");
 	let mut mem = Memory::new(data);
