@@ -32,7 +32,20 @@ MSB      LSB
    `cargo run -- a.out`
 3. For an explaination of all the possible arguments  
    `cargo run -- -help`
-   
+
+## Usage
+### Debugging
+Left click on the window to pause the execution at any time or start in paused state via the `-s` flag. Once paused, use the `Space` key to execute instructions step by step. Left click again to resume execution.
+### Logging
+Use the `-v` flag to specify the level of verbosity for log output:
+| `-v` | Log Level |
+| -- | -- |
+| 0 | Error |
+| 1 | Info |
+| 2 | Debug |
+### Inputs
+Currently only four inputs are supported, `LEFT`, `DOWN`, `UP` and `RIGHT`. Both the arrow keys and the WASD cluster can be used to activate their respective inputs.
+
 ## Screenshots
 #### [examples/rgb.asm](examples/rgb.asm)  
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/9a6a5d93-d806-431a-af00-5bded1c93793)  
