@@ -1,5 +1,7 @@
 use std::fmt;
 
+use log::{debug, error, info, warn};
+
 const STACK_LOWEST_ADDRESS: u16 = 0x100;
 pub const MEMORY_SIZE: usize = 0x10000;
 pub struct Memory {
@@ -10,8 +12,7 @@ impl Memory {
 		Self { data }
 	}
 	fn read_byte(&self, address: u16) -> u8 {
-		#[cfg(feature = "debug_logs")]
-		eprintln!(
+		debug!(
 			"[Read]\t\t{:02x} from {:04x}",
 			self.data[address as usize], address
 		);
@@ -23,8 +24,7 @@ impl Memory {
 		higher_byte << 8 | lower_byte
 	}
 	fn write_byte(&mut self, address: u16, value: u8) {
-		#[cfg(feature = "debug_logs")]
-		eprintln!("[Write]\t\t{:02x} at {:04x}", value, address);
+		debug!("[Write]\t\t{:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
 
@@ -231,8 +231,7 @@ impl Cpu {
 
 	pub fn execute(&mut self, mem: &mut Memory) {
 		let instruction = self.decode(mem);
-		#[cfg(feature = "debug_logs")]
-		eprintln!("[Execute]\t{instruction:x?}");
+		info!("[Execute]\t{instruction:x?}");
 		use Operation as Op;
 		let pass_by_value = |operand| match operand {
 			Operand::Value(x) => x,
@@ -341,7 +340,7 @@ impl Cpu {
 			Instruction(Op::PLP, None) => self.status = self.pop_byte(mem),
 			//Jump
 			Instruction(Op::JMP, Some(Od::Address(addr))) => self.program_counter = addr,
-			_ => panic!("Invalid instruction: {:x?}", instruction),
+			_ => error!("Invalid instruction: {:x?}", instruction),
 		}
 	}
 
@@ -553,10 +552,13 @@ impl Cpu {
 			0x08 => instruction(PHP, Implicit),
 			0x68 => instruction(PLA, Implicit),
 			0x28 => instruction(PLP, Implicit),
-			_ => panic!(
-				"Invalid instruction found at location {:04x} => {operation:02x}",
-				self.program_counter - 1
-			),
+			_ => {
+				error!(
+					"Invalid instruction found at location {:04x} => {operation:02x}",
+					self.program_counter - 1
+				);
+				panic!();
+			}
 		}
 	}
 
@@ -571,14 +573,12 @@ impl Cpu {
 		let address = self.program_counter;
 		self.program_counter += 2;
 		let word = mem.read_word(address);
-		#[cfg(feature = "debug_logs")]
-		eprintln!("[Fetch]\t\tword: {:04x} from: {address:04x}", word);
+		debug!("[Fetch]\t\tword: {:04x} from: {address:04x}", word);
 		word
 	}
 	fn fetch_byte(&mut self, mem: &Memory) -> u8 {
 		let address = self.program_counter;
-		#[cfg(feature = "debug_logs")]
-		eprintln!(
+		debug!(
 			"[Fetch]\t\tbyte: {:02x} from: {address:04x}",
 			mem.read_byte(address)
 		);
@@ -609,7 +609,7 @@ impl Cpu {
 					mem.modify(addr, |x| x << 1);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
-				Operand::Value(_) => panic!("Value operand not supported for ASL: {operand:?}"),
+				Operand::Value(_) => warn!("Value operand not supported for ASL: {operand:?}"),
 			}
 		} else {
 			self.set_flag(StatusFlags::Carry, self.a & 0x80 > 0);
@@ -627,7 +627,7 @@ impl Cpu {
 					self.set_flag(StatusFlags::Carry, new_carray_value);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
-				Operand::Value(_) => panic!("Value operand not supported for ROL: {operand:?}"),
+				Operand::Value(_) => warn!("Value operand not supported for ROL: {operand:?}"),
 			}
 		} else {
 			let new_carray_value = self.a >> 7 > 0;
@@ -646,7 +646,7 @@ impl Cpu {
 					self.set_flag(StatusFlags::Negative, self.get_flag(StatusFlags::Carry));
 					self.set_flag(StatusFlags::Carry, new_carray_value);
 				}
-				Operand::Value(_) => panic!("Value operand not supported for ROR: {operand:?}"),
+				Operand::Value(_) => warn!("Value operand not supported for ROR: {operand:?}"),
 			}
 		} else {
 			let new_carray_value = self.a & 0x1 > 0;
@@ -664,7 +664,7 @@ impl Cpu {
 					mem.modify(addr, |x| x >> 1);
 					self.update_zero_and_negative_flag(mem.read_byte(addr));
 				}
-				Operand::Value(_) => panic!("Value operand not supported for LSR: {operand:?}"),
+				Operand::Value(_) => warn!("Value operand not supported for LSR: {operand:?}"),
 			}
 		} else {
 			self.set_flag(StatusFlags::Carry, self.a & 0x1 > 0);
@@ -762,7 +762,7 @@ impl fmt::Debug for Cpu {
 			self.stack_pointer,
 			self.program_counter,
 		));
-		output.push_str("╰───┴──┴──┴─────────┴────┴────╯\n");
+		output.push_str("╰───┴──┴──┴─────────┴────┴────╯");
 		write!(f, "{output}")
 	}
 }

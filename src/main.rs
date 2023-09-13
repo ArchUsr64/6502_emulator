@@ -1,7 +1,15 @@
 mod cpu;
 use cpu::*;
 
-use macroquad::prelude::*;
+use log::{info, LevelFilter};
+
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
+
+use macroquad::prelude::{
+	clear_background, draw_rectangle, draw_rectangle_lines, draw_text, is_key_down, is_key_pressed,
+	is_mouse_button_pressed, next_frame, rand, screen_height, screen_width, Color, KeyCode,
+	MouseButton, BLACK, WHITE,
+};
 const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
 const RNG_MEMORY_LOCATION: usize = 0xff;
@@ -14,7 +22,7 @@ struct Args {
 	/// Path to the 6502 binary
 	#[arg(default_value = "a.out")]
 	executable: String,
-	/// Debug Verbosity level [0-3]
+	/// Debug Verbosity level [0-2]
 	#[arg(short, long, default_value_t = 0)]
 	verbosity: u8,
 	/// Start in debug mode
@@ -28,6 +36,17 @@ struct Args {
 #[macroquad::main("6502 Emulator")]
 async fn main() {
 	let args = Args::parse();
+	TermLogger::init(
+		match args.verbosity {
+			1 => LevelFilter::Info,
+			2 => LevelFilter::Debug,
+			_ => LevelFilter::Error,
+		},
+		Config::default(),
+		TerminalMode::Mixed,
+		ColorChoice::Auto,
+	)
+	.unwrap();
 	let data = read_mem(&args.executable);
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
@@ -41,9 +60,7 @@ async fn main() {
 		}
 		if !paused || (paused && is_key_pressed(KeyCode::Space)) {
 			(0..args.executions_per_frame).for_each(|_| {
-				if args.verbosity > 0 {
-					println!("{cpu:?}");
-				}
+				info!("{cpu:?}");
 				cpu.execute(&mut mem);
 				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
 				// Left, Down, Up, Right
