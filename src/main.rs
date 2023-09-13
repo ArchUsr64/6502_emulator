@@ -64,10 +64,14 @@ async fn main() {
 				cpu.execute(&mut mem);
 				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
 				// Left, Down, Up, Right
-				mem.data[INPUT_MEMORY_LOCATION] = is_key_down(KeyCode::Left) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 1] = is_key_down(KeyCode::Down) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 2] = is_key_down(KeyCode::Up) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 3] = is_key_down(KeyCode::Right) as u8;
+				mem.data[INPUT_MEMORY_LOCATION] =
+					(is_key_down(KeyCode::Left) | is_key_down(KeyCode::A)) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 1] =
+					(is_key_down(KeyCode::Down) | is_key_down(KeyCode::S)) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 2] =
+					(is_key_down(KeyCode::Up) | is_key_down(KeyCode::W)) as u8;
+				mem.data[INPUT_MEMORY_LOCATION + 3] =
+					(is_key_down(KeyCode::Right) | is_key_down(KeyCode::D)) as u8;
 			});
 		}
 		// Window Decorations
