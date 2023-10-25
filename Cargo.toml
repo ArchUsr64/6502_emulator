@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.3", features = ["derive"] }
 log = "0.4.20"
-macroquad = { version = "0.3.25", default-features = false }
+macroquad = "0.3.25"
 simplelog = "0.12.1"
