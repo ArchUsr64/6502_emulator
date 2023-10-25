@@ -51,10 +51,7 @@ async fn main() {
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
 	let mut paused = args.start_debug;
-	use std::time;
-	let mut frame_time = time::Duration::from_millis(0);
 	loop {
-		let start = time::Instant::now();
 		if is_mouse_button_pressed(MouseButton::Left) {
 			paused = !paused;
 		}
@@ -79,11 +76,7 @@ async fn main() {
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
 		draw_text(
-			format!(
-				"FPS: {:.0}",
-				(frame_time.as_micros() as f32 / 1_000_000.).recip()
-			)
-			.as_str(),
+			format!("FPS: {:.0}", macroquad::time::get_fps(),).as_str(),
 			0.,
 			0.5 * min_screen_dimension * 0.1,
 			min_screen_dimension * 0.1,
@@ -131,7 +124,6 @@ async fn main() {
 			})
 		});
 		next_frame().await;
-		frame_time = start.elapsed();
 	}
 }
 
