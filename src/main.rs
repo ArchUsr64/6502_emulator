@@ -123,11 +123,12 @@ async fn main() {
 				);
 			})
 		});
-		next_frame().await;
+		next_frame().await
 	}
 }
 
 fn read_mem(file_path: &str) -> [u8; MEMORY_SIZE] {
+	#[cfg(target_family = "unix")]
 	let rom = std::fs::read(file_path).unwrap();
 	#[cfg(target_family = "wasm")]
 	let rom = include_bytes!("a.out");
