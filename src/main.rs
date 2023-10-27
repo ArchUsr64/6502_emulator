@@ -131,7 +131,7 @@ fn read_mem(file_path: &str) -> [u8; MEMORY_SIZE] {
 	#[cfg(target_family = "unix")]
 	let rom = std::fs::read(file_path).unwrap();
 	#[cfg(target_family = "wasm")]
-	let rom = include_bytes!("a.out");
+	let rom = include_bytes!("../a.out");
 	let mut data = [0; MEMORY_SIZE];
 	for (index, val) in rom.iter().enumerate() {
 		data[index] = *val;
