@@ -75,22 +75,6 @@ async fn main() {
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
-		draw_text(
-			format!("FPS: {:.0}", macroquad::time::get_fps(),).as_str(),
-			0.,
-			0.5 * min_screen_dimension * 0.1,
-			min_screen_dimension * 0.1,
-			WHITE,
-		);
-		if paused {
-			draw_text(
-				format!("PAUSED",).as_str(),
-				0.,
-				1.5 * min_screen_dimension * 0.1,
-				min_screen_dimension * 0.1,
-				WHITE,
-			);
-		}
 		let pixel_size = 0.95 * min_screen_dimension / 32.;
 		let gap = (
 			screen_size.0 - 32. * pixel_size,
@@ -123,6 +107,22 @@ async fn main() {
 				);
 			})
 		});
+		draw_text(
+			format!("FPS: {:.0}", macroquad::time::get_fps(),).as_str(),
+			0.,
+			0.5 * min_screen_dimension * 0.1,
+			min_screen_dimension * 0.1,
+			WHITE,
+		);
+		if paused {
+			draw_text(
+				format!("PAUSED",).as_str(),
+				0.,
+				1.5 * min_screen_dimension * 0.1,
+				min_screen_dimension * 0.1,
+				WHITE,
+			);
+		}
 		next_frame().await
 	}
 }
