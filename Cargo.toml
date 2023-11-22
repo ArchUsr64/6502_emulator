@@ -10,3 +10,10 @@ clap = { version = "4.4.3", features = ["derive"] }
 log = "0.4.20"
 macroquad = "0.4.4"
 simplelog = "0.12.1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
