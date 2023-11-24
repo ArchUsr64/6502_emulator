@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.3", features = ["derive"] }
+egui-macroquad = "0.15.0"
 log = "0.4.20"
-macroquad = "0.4.4"
 simplelog = "0.12.1"
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"

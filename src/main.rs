@@ -1,5 +1,6 @@
 mod cpu;
 use cpu::*;
+use egui_macroquad::*;
 
 use log::{info, LevelFilter};
 
@@ -30,7 +31,7 @@ struct Args {
 	start_debug: bool,
 	/// Number of CPU instructions to execute per frame
 	#[arg(short, long, default_value_t = 100)]
-	executions_per_frame: u16,
+	executions_per_frame: u32,
 }
 
 #[macroquad::main("6502 Emulator")]
@@ -123,6 +124,17 @@ async fn main() {
 				WHITE,
 			);
 		}
+
+		egui_macroquad::ui(|egui_ctx| {
+			egui::Window::new("egui ❤ macroquad").show(egui_ctx, |ui| {
+				ui.label("Test");
+			});
+		});
+
+		// Draw things before egui
+
+		egui_macroquad::draw();
+
 		next_frame().await
 	}
 }
