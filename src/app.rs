@@ -2,17 +2,37 @@ use crate::{cpu, egui};
 
 pub struct App {
 	pub paused: bool,
+	pub step: bool,
+}
+
+impl Default for App {
+	fn default() -> Self {
+		Self {
+			step: false,
+			paused: false,
+		}
+	}
 }
 
 impl App {
-	pub fn new() -> Self {
-		Self { paused: false }
-	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu) {
+		self.step = false;
 		egui::Window::new("Debug Controls").show(ctx, |ui| {
-			if ui.add(egui::Button::new("Pause Execution")).clicked() {
+			if ui
+				.add(egui::Button::new(if !self.paused {
+					"Pause Execution"
+				} else {
+					"Resume Execution"
+				}))
+				.clicked()
+			{
 				self.paused = !self.paused;
 			};
+			if self.paused {
+				if ui.add(egui::Button::new("Step")).clicked() {
+					self.step = true
+				};
+			}
 		});
 		if self.paused {
 			let cpu_state = cpu.state();

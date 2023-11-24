@@ -9,8 +9,8 @@ use log::{info, LevelFilter};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 
 use macroquad::prelude::{
-	clear_background, draw_rectangle, draw_rectangle_lines, draw_text, is_key_down, is_key_pressed,
-	next_frame, rand, screen_height, screen_width, Color, KeyCode, BLACK, WHITE,
+	clear_background, draw_rectangle, draw_rectangle_lines, draw_text, is_key_down, next_frame,
+	rand, screen_height, screen_width, Color, KeyCode, BLACK, WHITE,
 };
 const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
@@ -52,23 +52,26 @@ async fn main() {
 	let data = read_mem(&args.executable);
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
-	let mut app = App::new();
+	let mut app = App::default();
 	loop {
-		if !app.paused || is_key_pressed(KeyCode::Space) {
-			(0..args.executions_per_frame).for_each(|_| {
-				info!("{cpu:?}");
-				cpu.execute(&mut mem);
-				mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
-				// Left, Down, Up, Right
-				mem.data[INPUT_MEMORY_LOCATION] =
-					(is_key_down(KeyCode::Left) | is_key_down(KeyCode::A)) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 1] =
-					(is_key_down(KeyCode::Down) | is_key_down(KeyCode::S)) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 2] =
-					(is_key_down(KeyCode::Up) | is_key_down(KeyCode::W)) as u8;
-				mem.data[INPUT_MEMORY_LOCATION + 3] =
-					(is_key_down(KeyCode::Right) | is_key_down(KeyCode::D)) as u8;
-			});
+		let mut execute_one_cycle = || {
+			info!("{cpu:?}");
+			cpu.execute(&mut mem);
+			mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
+			// Left, Down, Up, Right
+			mem.data[INPUT_MEMORY_LOCATION] =
+				(is_key_down(KeyCode::Left) | is_key_down(KeyCode::A)) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 1] =
+				(is_key_down(KeyCode::Down) | is_key_down(KeyCode::S)) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 2] =
+				(is_key_down(KeyCode::Up) | is_key_down(KeyCode::W)) as u8;
+			mem.data[INPUT_MEMORY_LOCATION + 3] =
+				(is_key_down(KeyCode::Right) | is_key_down(KeyCode::D)) as u8;
+		};
+		if !app.paused {
+			(0..args.executions_per_frame).for_each(|_| execute_one_cycle());
+		} else if app.step {
+			execute_one_cycle();
 		}
 		// Window Decorations
 		clear_background(BLACK);
