@@ -3,6 +3,7 @@ use crate::{cpu, egui};
 pub struct App {
 	pub paused: bool,
 	pub step: bool,
+	pub instructions_per_frame: u32,
 }
 
 impl Default for App {
@@ -10,6 +11,7 @@ impl Default for App {
 		Self {
 			step: false,
 			paused: false,
+			instructions_per_frame: 100,
 		}
 	}
 }
@@ -34,6 +36,14 @@ impl App {
 				};
 			}
 		});
+		if !self.paused {
+			egui::Window::new("Simulation Speed").show(ctx, |ui| {
+				ui.add(egui::Slider::new(
+					&mut self.instructions_per_frame,
+					1u32..=500,
+				))
+			});
+		}
 		if self.paused {
 			let cpu_state = cpu.state();
 			egui::Window::new("CPU State").show(ctx, |ui| {

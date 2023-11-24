@@ -32,7 +32,7 @@ struct Args {
 	start_debug: bool,
 	/// Number of CPU instructions to execute per frame
 	#[arg(short, long, default_value_t = 100)]
-	executions_per_frame: u32,
+	instructions_per_framce: u32,
 }
 
 #[macroquad::main("6502 Emulator")]
@@ -53,6 +53,7 @@ async fn main() {
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
 	let mut app = App::default();
+	app.instructions_per_frame = args.instructions_per_framce;
 	loop {
 		let mut execute_one_cycle = || {
 			info!("{cpu:?}");
@@ -69,7 +70,7 @@ async fn main() {
 				(is_key_down(KeyCode::Right) | is_key_down(KeyCode::D)) as u8;
 		};
 		if !app.paused {
-			(0..args.executions_per_frame).for_each(|_| execute_one_cycle());
+			(0..app.instructions_per_frame).for_each(|_| execute_one_cycle());
 		} else if app.step {
 			execute_one_cycle();
 		}
