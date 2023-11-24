@@ -124,10 +124,8 @@ async fn main() {
 		}
 
 		egui_macroquad::ui(|egui_ctx| {
-			app.render_ui(egui_ctx);
+			app.render_ui(egui_ctx, &cpu);
 		});
-
-		// Draw things before egui
 
 		egui_macroquad::draw();
 

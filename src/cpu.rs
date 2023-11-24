@@ -213,6 +213,15 @@ pub struct Cpu {
 	stack_pointer: u8,
 }
 
+pub struct CpuState {
+	pub program_counter: u16,
+	pub x: u8,
+	pub y: u8,
+	pub a: u8,
+	pub status: u8,
+	pub stack_pointer: u8,
+}
+
 impl Cpu {
 	pub fn new() -> Self {
 		Self {
@@ -222,6 +231,17 @@ impl Cpu {
 			a: 0,
 			status: 0,
 			stack_pointer: 0xff,
+		}
+	}
+
+	pub fn state(&self) -> CpuState {
+		CpuState {
+			program_counter: self.program_counter,
+			x: self.x,
+			y: self.y,
+			a: self.a,
+			status: self.status,
+			stack_pointer: self.stack_pointer,
 		}
 	}
 
