@@ -2,14 +2,15 @@ mod cpu;
 use cpu::*;
 use egui_macroquad::*;
 
+mod app;
+use app::App;
 use log::{info, LevelFilter};
 
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 
 use macroquad::prelude::{
 	clear_background, draw_rectangle, draw_rectangle_lines, draw_text, is_key_down, is_key_pressed,
-	is_mouse_button_pressed, next_frame, rand, screen_height, screen_width, Color, KeyCode,
-	MouseButton, BLACK, WHITE,
+	next_frame, rand, screen_height, screen_width, Color, KeyCode, BLACK, WHITE,
 };
 const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
@@ -51,12 +52,9 @@ async fn main() {
 	let data = read_mem(&args.executable);
 	let mut mem = Memory::new(data);
 	let mut cpu = Cpu::new();
-	let mut paused = args.start_debug;
+	let mut app = App::new();
 	loop {
-		if is_mouse_button_pressed(MouseButton::Left) {
-			paused = !paused;
-		}
-		if !paused || is_key_pressed(KeyCode::Space) {
+		if !app.paused || is_key_pressed(KeyCode::Space) {
 			(0..args.executions_per_frame).for_each(|_| {
 				info!("{cpu:?}");
 				cpu.execute(&mut mem);
@@ -115,7 +113,7 @@ async fn main() {
 			min_screen_dimension * 0.1,
 			WHITE,
 		);
-		if paused {
+		if app.paused {
 			draw_text(
 				format!("PAUSED",).as_str(),
 				0.,
@@ -126,9 +124,7 @@ async fn main() {
 		}
 
 		egui_macroquad::ui(|egui_ctx| {
-			egui::Window::new("egui ❤ macroquad").show(egui_ctx, |ui| {
-				ui.label("Test");
-			});
+			app.render_ui(egui_ctx);
 		});
 
 		// Draw things before egui
