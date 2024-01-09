@@ -1,5 +1,5 @@
 /target
 a.out
-test.asm
+symbols.dbg
 *.wasm
-vasm/
+vasm-main/
