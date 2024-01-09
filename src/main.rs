@@ -94,6 +94,11 @@ async fn main() {
 
 	app.instructions_per_frame = args.instructions_per_framce;
 	loop {
+		if app.reset {
+			cpu = Cpu::new();
+			mem = Memory::new(data);
+			app.reset = false;
+		}
 		let mut execute_one_cycle = || {
 			info!("{cpu:?}");
 			cpu.execute(&mut mem);

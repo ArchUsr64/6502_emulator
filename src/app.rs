@@ -10,6 +10,7 @@ pub struct App {
 	/// u16 program counter address
 	pub debug_symbols: Vec<u16>,
 	pub source_file: Vec<String>,
+	pub reset: bool,
 }
 
 impl App {
@@ -20,6 +21,7 @@ impl App {
 			instructions_per_frame: 100,
 			debug_symbols,
 			source_file,
+			reset: false,
 		}
 	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu) {
@@ -34,6 +36,9 @@ impl App {
 				.clicked()
 			{
 				self.paused = !self.paused;
+			};
+			if ui.add(egui::Button::new("Reset")).clicked() {
+				self.reset = true
 			};
 			if self.paused {
 				if ui.add(egui::Button::new("Step")).clicked() {
