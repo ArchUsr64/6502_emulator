@@ -75,7 +75,7 @@ impl App {
 						.iter()
 						.position(|&i| i == cpu_state.program_counter)
 					{
-						(line_number + 2).to_string()
+						(line_number + 1).to_string()
 					} else {
 						"xxx".to_string()
 					}
@@ -88,7 +88,7 @@ impl App {
 							.iter()
 							.position(|&i| i == cpu_state.program_counter)
 						{
-							&self.source_file[line_number + 1]
+							&self.source_file[line_number]
 						} else {
 							"_"
 						},
