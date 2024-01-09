@@ -51,14 +51,12 @@ impl App {
 				};
 			}
 		});
-		if !self.paused {
-			egui::Window::new("Simulation Speed").show(ctx, |ui| {
-				ui.add(egui::Slider::new(
-					&mut self.instructions_per_frame,
-					1u32..=500,
-				))
-			});
-		}
+		egui::Window::new("Simulation Speed").show(ctx, |ui| {
+			ui.add(egui::Slider::new(
+				&mut self.instructions_per_frame,
+				1u32..=500,
+			))
+		});
 		if self.paused {
 			let cpu_state = cpu.state();
 			egui::Window::new("CPU State").show(ctx, |ui| {
