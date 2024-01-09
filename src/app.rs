@@ -75,11 +75,26 @@ impl App {
 						.iter()
 						.position(|&i| i == cpu_state.program_counter)
 					{
-						(line_number + 1).to_string()
+						(line_number + 2).to_string()
 					} else {
 						"xxx".to_string()
 					}
 				)));
+				ui.add(egui::Label::new("Instruction:"));
+				ui.label(
+					egui::RichText::new(
+						if let Some(line_number) = self
+							.debug_symbols
+							.iter()
+							.position(|&i| i == cpu_state.program_counter)
+						{
+							&self.source_file[line_number + 1]
+						} else {
+							"_"
+						},
+					)
+					.color(Color32::YELLOW),
+				);
 				ui.add(egui::Label::new("Registers:"));
 				ui.label(
 					egui::RichText::new(format!(
@@ -93,25 +108,33 @@ impl App {
 		egui::Window::new("Source Code")
 			.anchor(Align2::RIGHT_TOP, [-10., 10.])
 			.show(ctx, |ui| {
-				egui::ScrollArea::vertical().show(ui, |ui| {
-					ui.add(
-						egui::TextEdit::multiline(
-							&mut self
-								.source_file
-								.iter()
-								.enumerate()
-								.map(|(line_number, line)| format!("{}:\t{line}", line_number + 1))
-								.collect::<Vec<_>>()
-								.join("\n"),
-						)
-						.text_color(Color32::YELLOW)
-						.desired_width(f32::INFINITY)
-						.desired_rows(40)
-						.clip_text(true)
-						.interactive(false)
-						.font(egui::TextStyle::Monospace),
-					);
-				})
+				egui::ScrollArea::vertical()
+					.max_height(f32::INFINITY)
+					.show(ui, |ui| {
+						ui.add(
+							egui::TextEdit::multiline(
+								&mut self
+									.source_file
+									.iter()
+									.enumerate()
+									.map(|(line_number, line)| {
+										format!(
+											"{}{}:\t{line}",
+											" ".repeat(3 - (line_number + 1).to_string().len()),
+											line_number + 1
+										)
+									})
+									.collect::<Vec<_>>()
+									.join("\n"),
+							)
+							.text_color(Color32::YELLOW)
+							.desired_width(f32::INFINITY)
+							.desired_rows(40)
+							.clip_text(true)
+							.interactive(false)
+							.font(egui::TextStyle::Monospace),
+						);
+					})
 			});
 		egui::Window::new("Breakpoints").show(ctx, |ui| {
 			ui.horizontal(|ui| {
