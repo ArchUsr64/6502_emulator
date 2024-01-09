@@ -1,6 +1,7 @@
 # 6502 Emulator
 
-Emulates a MOS 6502 chip with DMA graphics and input capibalities
+Emulates a MOS 6502 chip with DMA graphics and input capibalities.  
+[LIVE DEMO](https://archusr64.github.io/6502_emulator/)
 
 https://github.com/ArchUsr64/6502_emulator/assets/83179501/17add7d3-14d8-47e4-bffd-77c96e9250e6  
 
