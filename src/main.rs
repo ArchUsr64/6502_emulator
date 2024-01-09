@@ -47,6 +47,7 @@ struct Args {
 #[macroquad::main("6502 Emulator")]
 async fn main() {
 	let args = Args::parse();
+	#[cfg(target_family = "unix")]
 	TermLogger::init(
 		match args.verbosity {
 			1 => LevelFilter::Info,
@@ -60,21 +61,22 @@ async fn main() {
 	.unwrap();
 
 	let mut debug_symbols_map: HashMap<usize, u16> = HashMap::new();
-	std::fs::read_to_string(args.debug_symbols)
-		.expect("Failed to read debug symbols")
-		.lines()
-		.for_each(|line| {
-			let line_number: usize = line.split_whitespace().nth(0).unwrap().parse().unwrap();
-			let pc_address: u16 =
-				u16::from_str_radix(line.split_whitespace().last().unwrap(), 16).unwrap();
-			debug_symbols_map.insert(line_number, pc_address);
-		});
+	#[cfg(target_family = "wasm")]
+	let file = include_str!("../symbols.dbg");
+	#[cfg(target_family = "unix")]
+	let file = std::fs::read_to_string(args.debug_symbols).expect("Failed to read debug symbols");
+	file.lines().for_each(|line| {
+		let line_number: usize = line.split_whitespace().nth(0).unwrap().parse().unwrap();
+		let pc_address: u16 =
+			u16::from_str_radix(line.split_whitespace().last().unwrap(), 16).unwrap();
+		debug_symbols_map.insert(line_number, pc_address);
+	});
 
-	let source_file: Vec<String> = std::fs::read_to_string(args.assembly_source)
-		.unwrap()
-		.lines()
-		.map(|i| String::from(i))
-		.collect();
+	#[cfg(target_family = "wasm")]
+	let file = include_str!("../examples/snake.asm");
+	#[cfg(target_family = "unix")]
+	let file = std::fs::read_to_string(args.assembly_source).expect("Failed to read debug symbols");
+	let source_file: Vec<String> = file.lines().map(|i| String::from(i)).collect();
 
 	let mut last_pc_value = 0;
 	let mut debug_symbols: Vec<u16> = Vec::with_capacity(source_file.len());
