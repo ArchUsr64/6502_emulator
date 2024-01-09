@@ -11,6 +11,9 @@ pub struct App {
 	pub debug_symbols: Vec<u16>,
 	pub source_file: Vec<String>,
 	pub reset: bool,
+	/// Vector of line numbers
+	breakpoints: Vec<usize>,
+	breakpoints_user_entry: String,
 }
 
 impl App {
@@ -22,6 +25,8 @@ impl App {
 			debug_symbols,
 			source_file,
 			reset: false,
+			breakpoints: vec![],
+			breakpoints_user_entry: String::new(),
 		}
 	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu) {
@@ -98,5 +103,34 @@ impl App {
 					);
 				})
 			});
+		egui::Window::new("Breakpoints").show(ctx, |ui| {
+			ui.horizontal(|ui| {
+				ui.label("Line number:");
+				ui.add(
+					egui::TextEdit::singleline(&mut self.breakpoints_user_entry).desired_width(40.),
+				);
+
+				if ui.button("Add").clicked() {
+					if let Ok(line_number) = self.breakpoints_user_entry.parse() {
+						if !self.breakpoints.contains(&line_number) {
+							self.breakpoints.push(line_number);
+						}
+					}
+					self.breakpoints_user_entry.clear();
+				}
+			});
+			let mut to_remove = Vec::new();
+			for (i, breakpoint) in self.breakpoints.iter().enumerate() {
+				ui.horizontal(|ui| {
+					ui.label(format!("{breakpoint}"));
+					if ui.button("X").clicked() {
+						to_remove.push(i);
+					}
+				});
+			}
+			to_remove.iter().for_each(|i| {
+				self.breakpoints.remove(*i);
+			});
+		});
 	}
 }
