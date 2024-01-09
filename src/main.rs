@@ -78,7 +78,7 @@ async fn main() {
 
 	let mut last_pc_value = 0;
 	let mut debug_symbols: Vec<u16> = Vec::with_capacity(source_file.len());
-	for (line_number, _) in source_file.iter().enumerate() {
+	for (line_number, _) in source_file.iter().enumerate().rev() {
 		if let Some(&pc_addr) = debug_symbols_map.get(&line_number) {
 			debug_symbols.push(pc_addr);
 			last_pc_value = pc_addr;
@@ -86,6 +86,7 @@ async fn main() {
 			debug_symbols.push(last_pc_value);
 		}
 	}
+	debug_symbols.reverse();
 
 	let data = read_mem(&args.executable);
 	let mut mem = Memory::new(data);

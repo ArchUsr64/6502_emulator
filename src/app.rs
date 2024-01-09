@@ -70,6 +70,18 @@ impl App {
 					"Stack Pointer: 0x{:0x}",
 					cpu_state.stack_pointer
 				)));
+				ui.add(egui::Label::new(format!(
+					"Line Number: {}",
+					if let Some(line_number) = self
+						.debug_symbols
+						.iter()
+						.position(|&i| i == cpu_state.program_counter)
+					{
+						(line_number + 1).to_string()
+					} else {
+						"xxx".to_string()
+					}
+				)));
 				ui.add(egui::Label::new("Registers:"));
 				ui.label(
 					egui::RichText::new(format!(
@@ -132,5 +144,14 @@ impl App {
 				self.breakpoints.remove(*i);
 			});
 		});
+		if let Some(line_number) = self
+			.debug_symbols
+			.iter()
+			.position(|&i| i == cpu.state().program_counter)
+		{
+			if self.breakpoints.contains(&(line_number + 1)) {
+				self.paused = true;
+			}
+		}
 	}
 }
