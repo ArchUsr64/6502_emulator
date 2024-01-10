@@ -1,23 +1,23 @@
 # 6502 Emulator
 
-Emulates a MOS 6502 chip with DMA graphics and input capibalities.  
-[LIVE DEMO](https://archusr64.github.io/6502_emulator/)
+Emulates a MOS 6502 chip with DMA graphics and input capibalities with interactive debugging.  
+**[LIVE DEMO](https://archusr64.github.io/6502_emulator/)**
 
-https://github.com/ArchUsr64/6502_emulator/assets/83179501/17add7d3-14d8-47e4-bffd-77c96e9250e6  
+https://github.com/ArchUsr64/6502_emulator/assets/83179501/e0dbec0d-e08e-4925-af7d-f378ba173d0e
 
 Source Code for [snake](examples/snake.asm)
 
 ## Build and Execution
-1. Clone the repository  
+1. Clone the repository:  
    `git clone https://github.com/ArchUsr64/6502_emulator`
-2. Change to newly created directory  
+2. Change to newly created directory:  
    `cd 6502_emulator`
-4. Assemble one of the provided examples under `examples/` using [vasm](http://www.compilers.de/vasm.html) or just use the provided `a.out`  
+4. Assemble one of the provided examples under `examples/` using [vasm](http://www.compilers.de/vasm.html) or just use the provided python build script:  
    `python build_asm.py examples/snake.asm`  
    This should build an `a.out` binary which the emulator can understand along with `symbols.dbg` for debugging.
-5. Run the emulator  
+5. Run the emulator:  
    `cargo run -- a.out --assembly-source examples/snake.asm --debug-symbols symbols.dbg`
-6. For an explaination of all possible arguments  
+6. For an explaination of all possible arguments:  
    `cargo run -- --help`
 
 ## Usage
@@ -58,6 +58,9 @@ MSB      LSB
 ```
 
 ## Screenshots
+#### [examples/snake.asm](examples/snake.asm)  
+![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/2c104306-8233-4f13-9b76-5ee321c4d05f)
+<br>
 #### [examples/rgb.asm](examples/rgb.asm)  
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/9a6a5d93-d806-431a-af00-5bded1c93793)  
 <br>
