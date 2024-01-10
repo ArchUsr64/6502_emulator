@@ -11,8 +11,8 @@ use log::{info, LevelFilter};
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 
 use macroquad::prelude::{
-	clear_background, draw_rectangle, draw_rectangle_lines, draw_text, is_key_down, next_frame,
-	rand, screen_height, screen_width, Color, KeyCode, BLACK, WHITE,
+	clear_background, draw_rectangle, draw_rectangle_lines, is_key_down, next_frame, rand,
+	screen_height, screen_width, Color, KeyCode, BLACK, WHITE,
 };
 const SCREEN_MEMORY_START: usize = 0xfb00;
 const INPUT_MEMORY_LOCATION: usize = 0xfb;
@@ -119,6 +119,7 @@ async fn main() {
 			(0..app.instructions_per_frame).for_each(|_| execute_one_cycle());
 		} else if app.step {
 			execute_one_cycle();
+			app.step = false;
 		}
 		// Window Decorations
 		clear_background(BLACK);
@@ -156,22 +157,6 @@ async fn main() {
 				);
 			})
 		});
-		draw_text(
-			format!("FPS: {:.0}", macroquad::time::get_fps(),).as_str(),
-			0.,
-			0.5 * min_screen_dimension * 0.1,
-			min_screen_dimension * 0.1,
-			WHITE,
-		);
-		if app.paused {
-			draw_text(
-				format!("PAUSED",).as_str(),
-				0.,
-				1.5 * min_screen_dimension * 0.1,
-				min_screen_dimension * 0.1,
-				WHITE,
-			);
-		}
 
 		egui_macroquad::ui(|egui_ctx| {
 			app.render_ui(egui_ctx, &cpu, &mem);

@@ -46,30 +46,33 @@ impl App {
 					ctx.set_pixels_per_point(self.ui_scale);
 				};
 			});
-			if ui
-				.add(egui::Button::new(if !self.paused {
-					"Pause Execution"
-				} else {
-					"Resume Execution"
-				}))
-				.clicked()
-			{
-				self.paused = !self.paused;
-			};
-			if ui.add(egui::Button::new("Reset")).clicked() {
-				self.reset = true
-			};
-			if self.paused {
-				if ui.add(egui::Button::new("Step")).clicked() {
-					self.step = true
+			ui.horizontal(|ui| {
+				ui.label("Simulation Speed: ");
+				ui.add(egui::Slider::new(
+					&mut self.instructions_per_frame,
+					1u32..=500,
+				))
+			});
+			ui.horizontal(|ui| {
+				if ui
+					.add(egui::Button::new(if !self.paused {
+						"Pause Execution"
+					} else {
+						"Resume Execution"
+					}))
+					.clicked()
+				{
+					self.paused = !self.paused;
 				};
-			}
-		});
-		egui::Window::new("Simulation Speed").show(ctx, |ui| {
-			ui.add(egui::Slider::new(
-				&mut self.instructions_per_frame,
-				1u32..=500,
-			))
+				if ui.add(egui::Button::new("Reset")).clicked() {
+					self.reset = true
+				};
+				if self.paused {
+					if ui.add(egui::Button::new("Step")).clicked() {
+						self.step = true
+					};
+				}
+			});
 		});
 		if self.paused {
 			let cpu_state = cpu.state();
@@ -153,11 +156,13 @@ impl App {
 		egui::Window::new("Breakpoints").show(ctx, |ui| {
 			ui.horizontal(|ui| {
 				ui.label("Line number:");
-				ui.add(
-					egui::TextEdit::singleline(&mut self.breakpoints_user_entry).desired_width(40.),
-				);
-
-				if ui.button("Add").clicked() {
+				if ui
+					.add(
+						egui::TextEdit::singleline(&mut self.breakpoints_user_entry)
+							.desired_width(40.),
+					)
+					.lost_focus() || ui.button("Add").clicked()
+				{
 					if let Ok(line_number) = self.breakpoints_user_entry.parse() {
 						if !self.breakpoints.contains(&line_number) {
 							self.breakpoints.push(line_number);
@@ -182,13 +187,14 @@ impl App {
 		egui::Window::new("Watchpoints").show(ctx, |ui| {
 			ui.horizontal(|ui| {
 				ui.label("Address:");
-				ui.add(
-					egui::TextEdit::singleline(&mut self.watchpoints_user_entry)
-						.desired_width(40.)
-						.hint_text("in hex"),
-				);
-
-				if ui.button("Add").clicked() {
+				if ui
+					.add(
+						egui::TextEdit::singleline(&mut self.watchpoints_user_entry)
+							.desired_width(40.)
+							.hint_text("in hex"),
+					)
+					.lost_focus() || ui.button("Add").clicked()
+				{
 					if let Ok(line_number) = u16::from_str_radix(&self.watchpoints_user_entry, 16) {
 						if !self.watchpoints.contains(&line_number) {
 							self.watchpoints.push(line_number);
