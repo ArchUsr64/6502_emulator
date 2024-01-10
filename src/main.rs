@@ -94,6 +94,7 @@ async fn main() {
 	let mut cpu = Cpu::new();
 	let mut app = App::new(debug_symbols, source_file);
 
+	app.paused = args.start_debug;
 	app.instructions_per_frame = args.instructions_per_framce;
 	loop {
 		if app.reset {
