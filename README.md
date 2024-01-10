@@ -58,10 +58,3 @@ MSB      LSB
 <br>
 #### [examples/ferris.asm](examples/ferris.asm)  
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/8fcb2804-92d0-43a3-abd1-ef00b96d773d)
-
-## TODO
-- [X] Graphics Support
-- [ ] Deploy with Wasm
-- [X] Input Events
-- [ ] Interrupt Support
-- [ ] Integrated Debugger
