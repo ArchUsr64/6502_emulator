@@ -1,3 +1,4 @@
+use egui_macroquad::egui::Widget;
 use egui_macroquad::egui::{Align2, Color32};
 
 use crate::{cpu, egui, Memory};
@@ -128,7 +129,7 @@ impl App {
 							.enumerate()
 							.for_each(|(line_number, line)| {
 								ui.horizontal(|ui| {
-									ui.label(
+									if egui::Label::new(
 										egui::RichText::new(format!(
 											"{}{}\t",
 											" ".repeat(3 - (line_number + 1).to_string().len()),
@@ -141,7 +142,21 @@ impl App {
 										} else {
 											Color32::default()
 										}),
-									);
+									)
+									.sense(egui::Sense::click())
+									.ui(ui)
+									.clicked()
+									{
+										if let Some(index) = self
+											.breakpoints
+											.iter()
+											.position(|&i| i == line_number + 1)
+										{
+											self.breakpoints.remove(index);
+										} else {
+											self.breakpoints.push(line_number + 1);
+										}
+									};
 									ui.label(
 										egui::RichText::new(line)
 											.color(if line.contains(";") {
