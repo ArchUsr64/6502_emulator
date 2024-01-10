@@ -16,6 +16,7 @@ pub struct App {
 	breakpoints_user_entry: String,
 	watchpoints: Vec<u16>,
 	watchpoints_user_entry: String,
+	ui_scale: f32,
 }
 
 impl App {
@@ -31,11 +32,20 @@ impl App {
 			breakpoints_user_entry: String::new(),
 			watchpoints: vec![],
 			watchpoints_user_entry: String::new(),
+			ui_scale: 1.,
 		}
 	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &Memory) {
-		self.step = false;
 		egui::Window::new("Debug Controls").show(ctx, |ui| {
+			ui.horizontal(|ui| {
+				ui.label("UI Scale: ");
+				if ui
+					.add(egui::Slider::new(&mut self.ui_scale, 0.5f32..=3.))
+					.drag_released()
+				{
+					ctx.set_pixels_per_point(self.ui_scale);
+				};
+			});
 			if ui
 				.add(egui::Button::new(if !self.paused {
 					"Pause Execution"
@@ -169,7 +179,7 @@ impl App {
 				self.breakpoints.remove(*i);
 			});
 		});
-		egui::Window::new("Memory Watchpoints").show(ctx, |ui| {
+		egui::Window::new("Watchpoints").show(ctx, |ui| {
 			ui.horizontal(|ui| {
 				ui.label("Address:");
 				ui.add(
