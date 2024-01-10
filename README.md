@@ -22,8 +22,13 @@ Source Code for [snake](examples/snake.asm)
 
 ## Usage
 ### Debugging
-Left click on the window to pause the execution at any time or start in paused state via the `-s` flag. Once paused, use the `Space` key to execute instructions step by step. Left click again to resume execution.  
-Additionally the `-e` option can be used to specify the number of instructions to execute on the emulated CPU per frame.
+Click the 'Pause Execution' button in the Debug Controls window to pause the execution at any time or start in paused state via the `-s` flag.
+Once paused, use the `Step` button to execute the next instruction.
+
+Add breakpoints from the 'Breakpoints' window and press the 'X' button to remove previously added entires.
+
+Additionally the simulation speed can be adjusted using the slider or with the `-i` flag.
+
 ### Logging
 Use the `-v` flag to specify the level of verbosity for log output:
 | `-v` | Log Level |
