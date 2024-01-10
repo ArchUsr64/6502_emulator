@@ -13,7 +13,7 @@ impl Memory {
 			data: data.to_vec(),
 		}
 	}
-	fn read_byte(&self, address: u16) -> u8 {
+	pub fn read_byte(&self, address: u16) -> u8 {
 		debug!(
 			"[Read]\t\t{:02x} from {:04x}",
 			self.data[address as usize], address

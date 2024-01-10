@@ -174,7 +174,7 @@ async fn main() {
 		}
 
 		egui_macroquad::ui(|egui_ctx| {
-			app.render_ui(egui_ctx, &cpu);
+			app.render_ui(egui_ctx, &cpu, &mem);
 		});
 
 		egui_macroquad::draw();

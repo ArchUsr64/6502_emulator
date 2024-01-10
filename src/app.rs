@@ -1,6 +1,6 @@
 use egui_macroquad::egui::{Align2, Color32};
 
-use crate::{cpu, egui};
+use crate::{cpu, egui, Memory};
 
 pub struct App {
 	pub paused: bool,
@@ -14,6 +14,8 @@ pub struct App {
 	/// Vector of line numbers
 	breakpoints: Vec<usize>,
 	breakpoints_user_entry: String,
+	watchpoints: Vec<u16>,
+	watchpoints_user_entry: String,
 }
 
 impl App {
@@ -27,9 +29,11 @@ impl App {
 			reset: false,
 			breakpoints: vec![],
 			breakpoints_user_entry: String::new(),
+			watchpoints: vec![],
+			watchpoints_user_entry: String::new(),
 		}
 	}
-	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu) {
+	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &Memory) {
 		self.step = false;
 		egui::Window::new("Debug Controls").show(ctx, |ui| {
 			if ui
@@ -163,6 +167,40 @@ impl App {
 			}
 			to_remove.iter().for_each(|i| {
 				self.breakpoints.remove(*i);
+			});
+		});
+		egui::Window::new("Memory Watchpoints").show(ctx, |ui| {
+			ui.horizontal(|ui| {
+				ui.label("Address:");
+				ui.add(
+					egui::TextEdit::singleline(&mut self.watchpoints_user_entry)
+						.desired_width(40.)
+						.hint_text("in hex"),
+				);
+
+				if ui.button("Add").clicked() {
+					if let Ok(line_number) = u16::from_str_radix(&self.watchpoints_user_entry, 16) {
+						if !self.watchpoints.contains(&line_number) {
+							self.watchpoints.push(line_number);
+						}
+					}
+					self.watchpoints_user_entry.clear();
+				}
+			});
+			let mut to_remove = Vec::new();
+			for (i, &watchpoint) in self.watchpoints.iter().enumerate() {
+				ui.horizontal(|ui| {
+					ui.label(format!(
+						"0x{watchpoint:x} => 0x{:02x}",
+						mem.read_byte(watchpoint)
+					));
+					if ui.button("X").clicked() {
+						to_remove.push(i);
+					}
+				});
+			}
+			to_remove.iter().for_each(|i| {
+				self.watchpoints.remove(*i);
 			});
 		});
 		if let Some(line_number) = self
