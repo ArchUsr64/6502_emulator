@@ -36,6 +36,11 @@ impl App {
 		}
 	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &Memory) {
+		let current_line_number = self
+			.debug_symbols
+			.iter()
+			.position(|&i| i == cpu.state().program_counter)
+			.unwrap();
 		egui::Window::new("Debug Controls").show(ctx, |ui| {
 			ui.horizontal(|ui| {
 				ui.label("UI Scale: ");
@@ -99,18 +104,8 @@ impl App {
 				)));
 				ui.add(egui::Label::new("Instruction:"));
 				ui.label(
-					egui::RichText::new(
-						if let Some(line_number) = self
-							.debug_symbols
-							.iter()
-							.position(|&i| i == cpu_state.program_counter)
-						{
-							&self.source_file[line_number]
-						} else {
-							"_"
-						},
-					)
-					.color(Color32::YELLOW),
+					egui::RichText::new(&self.source_file[current_line_number])
+						.color(Color32::YELLOW),
 				);
 				ui.add(egui::Label::new("Registers:"));
 				ui.label(
@@ -128,30 +123,43 @@ impl App {
 				egui::ScrollArea::vertical()
 					.max_height(f32::INFINITY)
 					.show(ui, |ui| {
-						ui.add(
-							egui::TextEdit::multiline(
-								&mut self
-									.source_file
-									.iter()
-									.enumerate()
-									.map(|(line_number, line)| {
-										format!(
-											"{}{}:\t{line}",
+						self.source_file
+							.iter()
+							.enumerate()
+							.for_each(|(line_number, line)| {
+								ui.horizontal(|ui| {
+									ui.label(
+										egui::RichText::new(format!(
+											"{}{}\t",
 											" ".repeat(3 - (line_number + 1).to_string().len()),
 											line_number + 1
-										)
-									})
-									.collect::<Vec<_>>()
-									.join("\n"),
-							)
-							.text_color(Color32::YELLOW)
-							.desired_width(f32::INFINITY)
-							.desired_rows(40)
-							.clip_text(true)
-							.interactive(false)
-							.font(egui::TextStyle::Monospace),
-						);
-					})
+										))
+										.background_color(if line_number == current_line_number {
+											Color32::RED
+										} else if self.breakpoints.contains(&(line_number + 1)) {
+											Color32::BLUE
+										} else {
+											Color32::default()
+										}),
+									);
+									ui.label(
+										egui::RichText::new(line)
+											.color(if line.contains(";") {
+												Color32::DARK_GREEN
+											} else {
+												Color32::YELLOW
+											})
+											.background_color(
+												if current_line_number == line_number {
+													Color32::RED
+												} else {
+													Color32::default()
+												},
+											),
+									);
+								});
+							})
+					});
 			});
 		egui::Window::new("Breakpoints").show(ctx, |ui| {
 			ui.horizontal(|ui| {
@@ -219,14 +227,8 @@ impl App {
 				self.watchpoints.remove(*i);
 			});
 		});
-		if let Some(line_number) = self
-			.debug_symbols
-			.iter()
-			.position(|&i| i == cpu.state().program_counter)
-		{
-			if self.breakpoints.contains(&(line_number + 1)) {
-				self.paused = true;
-			}
+		if self.breakpoints.contains(&(current_line_number + 1)) {
+			self.paused = true;
 		}
 	}
 }
