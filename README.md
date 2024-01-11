@@ -27,7 +27,7 @@ This should build an `a.out` binary which the emulator can understand along with
 
 Run the emulator with the newly generated files:
 
-`cargo run -- a.out -a examples/snake.asm -d symbols.dbg`
+`cargo run -- -a examples/snake.asm -d symbols.dbg a.out`
 
 ### Debugging
 Click the 'Pause Execution' button in the Debug Controls window to pause the execution at any time or start in paused state via the `-s` flag.
@@ -39,9 +39,10 @@ For an example take a look at the provided [`symbols.dbg`](./symbols.dbg).
 
 ### CLI Arguments
 
+Usage: `nemu [OPTIONS] [EXECUTABLE]`
+
 | Option | Description | Default |
 | :--: | -- | -- |
-| -e | **Executable:** Path for the 6502 binary | `a.out` |
 | -v | **Verbosity:** Verbosity level for console logs | `0` (Errors only) |
 | -s | **Start debug:** Stard the emulator in debug mode | `false` |
 | -i | **Instructions per frame:** The number of CPU instructions to execute per rendered frame | `100` |
@@ -68,6 +69,8 @@ MSB      LSB
  |   |   |
  RRR GGG BB
 ```
+![color_palette](https://github.com/ArchUsr64/6502_emulator/assets/83179501/c50d56e0-0bd6-45be-83c7-d7bcb6025847)
+
 
 ## Screenshots
 ### Debugger UI
