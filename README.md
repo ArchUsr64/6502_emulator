@@ -1,6 +1,6 @@
 # 6502 Emulator
 
-Emulates a MOS 6502 chip with DMA graphics and input capibalities with interactive debugging.  
+Emulates a MOS 6502 chip with an interactive debugger.  
 **[LIVE DEMO](https://archusr64.github.io/6502_emulator/)**
 
 
@@ -16,33 +16,38 @@ Source Code for [snake](examples/snake.asm)
    `git clone https://github.com/ArchUsr64/6502_emulator`
 2. Change to newly created directory:  
    `cd 6502_emulator`
-4. Assemble one of the provided examples under `examples/` using [vasm](http://www.compilers.de/vasm.html) or just use the provided python build script:  
-   `python build_asm.py examples/snake.asm`  
-   This should build an `a.out` binary which the emulator can understand along with `symbols.dbg` for debugging.
-5. Run the emulator:  
-   `cargo run -- a.out --assembly-source examples/snake.asm --debug-symbols symbols.dbg`
-6. For an explaination of all possible arguments:  
-   `cargo run -- --help`
-
+3. Run the emulator:  
+   `cargo run --release`
+   
 ## Usage
+
+Assemble one of the provided examples under `examples/` using the provided python build script:  
+`python build_asm.py examples/snake.asm`  
+This should build an `a.out` binary which the emulator can understand along with `symbols.dbg` for debugging.
+
+Run the emulator with the newly generated files:
+
+`cargo run -- a.out -a examples/snake.asm -d symbols.dbg`
+
 ### Debugging
 Click the 'Pause Execution' button in the Debug Controls window to pause the execution at any time or start in paused state via the `-s` flag.
-Once paused, use the `Step` button to execute the next instruction.
+Once paused, use the `Step` button to execute the next instruction. Add breakpoints from the 'Breakpoints' window and press the 'X' button to
+remove previously added entires. Watchpoints can be used to observe and change memory addresses at runtime.
 
-Add breakpoints from the 'Breakpoints' window and press the 'X' button to remove previously added entires.
+The symbols required for debugging are included in a newline delimited entries of line numbers and program counter addresses, with the addresses in hexadecimal.
+For an example take a look at the provided [`symbols.dbg`](./symbols.dbg).
 
-Watchpoints can be used to observe and change memory addresses at runtime.
+### CLI Arguments
 
-Additionally the simulation speed can be adjusted using the slider or with the `-i` flag.
-
-### Logging
-Use the `-v` flag to specify the level of verbosity for log output:
-| `-v` | Log Level |
-| -- | -- |
-| 0 | Error |
-| 1 | Info |
-| 2 | Debug |
-
+| Option | Description | Default |
+| :--: | -- | -- |
+| -e | **Executable:** Path for the 6502 binary | `a.out` |
+| -v | **Verbosity:** Verbosity level for console logs | `0` (Errors only) |
+| -s | **Start debug:** Stard the emulator in debug mode | `false` |
+| -i | **Instructions per frame:** The number of CPU instructions to execute per rendered frame | `100` |
+| -d | **Debug symbols:** Path for the file containing debug symbols | [`symbols.dbg`](./symbols.dbg) |
+| -a | **Assembly source:** Path for the assembly source file | [`examples/snake.asm`](./examples/snake.asm) |
+  
 ### Inputs
 Use WASD or the arrow keys to provide input events.
 
