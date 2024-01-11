@@ -76,3 +76,10 @@ MSB      LSB
 ### Console Logs
 ![image](https://github.com/ArchUsr64/6502_emulator/assets/83179501/66a6e6f8-802d-4ed5-931f-bc01a5cdf2f6)
 
+## Thanks
+- [NesDev wiki](https://www.nesdev.org/) for providing amazing documentation of the chip.
+- [Vasm](http://sun.hasenbraten.de/vasm/) as the assembler.
+- [Egui](https://crates.io/crates/egui) for making the debugger UI possible.
+- [Macroquad](https://crates.io/crates/macroquad) for providing an easy to use graphics API.
+- [Emulating a 6502 system in JavaScript • Matt Godbolt](https://www.youtube.com/watch?v=7WuRq-Wmw5o)
+- [Assembly language vs. machine code - Ben Eater](https://www.youtube.com/watch?v=oO8_2JJV0B4)
