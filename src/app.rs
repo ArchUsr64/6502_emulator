@@ -106,7 +106,7 @@ impl App {
 			);
 			ui.label("Line Number:");
 			ui.label(
-				egui::RichText::new(current_line_number.to_string())
+				egui::RichText::new((current_line_number + 1).to_string())
 					.monospace()
 					.color(Color32::LIGHT_RED),
 			);
@@ -128,7 +128,7 @@ impl App {
 					cpu_state.a, cpu_state.x, cpu_state.y
 				))
 				.monospace()
-				.color(Color32::LIGHT_RED),
+				.color(Color32::LIGHT_GREEN),
 			);
 		});
 		egui::Window::new("Source Code").show(ctx, |ui| {
@@ -176,13 +176,6 @@ impl App {
 									egui::RichText::new(line)
 										.color(Color32::LIGHT_BLUE)
 										.monospace(),
-								);
-							} else if current_line_number == line_number {
-								ui.label(
-									egui::RichText::new(line)
-										.monospace()
-										.color(Color32::YELLOW)
-										.background_color(Color32::DARK_RED),
 								);
 							} else {
 								let leading_whitespace = line.len() - line.trim_start().len();
