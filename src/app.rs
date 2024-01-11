@@ -82,14 +82,14 @@ impl App {
 				{
 					self.paused = !self.paused;
 				};
-				if ui.add(egui::Button::new("Reset")).clicked() {
-					self.reset = true
-				};
 				if self.paused {
 					if ui.add(egui::Button::new("Step")).clicked() {
 						self.step = true
 					};
 				}
+				if ui.add(egui::Button::new("Reset")).clicked() {
+					self.reset = true
+				};
 			});
 			let cpu_state = cpu.state();
 			ui.label("Program Counter:");
@@ -132,7 +132,7 @@ impl App {
 			);
 		});
 		egui::Window::new("Source Code").show(ctx, |ui| {
-			egui::ScrollArea::vertical().show(ui, |ui| {
+			egui::ScrollArea::vertical().hscroll(true).show(ui, |ui| {
 				self.source_file
 					.iter()
 					.enumerate()
@@ -211,6 +211,7 @@ impl App {
 				if ui
 					.add(
 						egui::TextEdit::singleline(&mut self.watchpoints_user_entry)
+							.font(egui::TextStyle::Monospace)
 							.desired_width(40.)
 							.hint_text("in hex"),
 					)
@@ -229,7 +230,11 @@ impl App {
 			for (i, &watchpoint) in self.watchpoints.iter().enumerate() {
 				ui.horizontal(|ui| {
 					let mut user_entry = format!("{:x}", mem.read_byte(watchpoint));
-					ui.label(format!("0x{watchpoint:04x}"));
+					ui.label(
+						egui::RichText::new(format!("0x{watchpoint:04x}"))
+							.monospace()
+							.color(Color32::LIGHT_YELLOW),
+					);
 					if egui::TextEdit::singleline(&mut user_entry)
 						.code_editor()
 						.desired_width(30.)
@@ -271,9 +276,17 @@ impl App {
 					}
 				});
 				let mut to_remove = Vec::new();
-				for (i, breakpoint) in self.breakpoints.iter().enumerate() {
+				for (i, &breakpoint) in self.breakpoints.iter().enumerate() {
 					ui.horizontal(|ui| {
-						ui.label(format!("{breakpoint}"));
+						ui.label(
+							egui::RichText::new(format!("{breakpoint:>3}"))
+								.monospace()
+								.color(if breakpoint == current_line_number + 1 {
+									Color32::LIGHT_RED
+								} else {
+									Color32::LIGHT_BLUE
+								}),
+						);
 						if ui.button("X").clicked() {
 							to_remove.push(i);
 						}
@@ -286,6 +299,8 @@ impl App {
 		if self.breakpoints.contains(&(current_line_number + 1)) {
 			self.paused = true;
 		}
+		self.breakpoints.sort_unstable();
+		self.watchpoints.sort_unstable();
 		self.break_address = self
 			.breakpoints
 			.iter()
