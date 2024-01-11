@@ -108,7 +108,7 @@ async fn main() {
 			mem = Memory::new(data);
 			app.reset = false;
 		}
-		let mut execute_one_cycle = || {
+		let mut execute_one_cycle = || -> u16 {
 			info!("{cpu:?}");
 			cpu.execute(&mut mem);
 			mem.data[RNG_MEMORY_LOCATION] = rand::gen_range(u8::MIN, u8::MAX);
@@ -121,12 +121,23 @@ async fn main() {
 				(is_key_down(KeyCode::Up) | is_key_down(KeyCode::W)) as u8;
 			mem.data[INPUT_MEMORY_LOCATION + 3] =
 				(is_key_down(KeyCode::Right) | is_key_down(KeyCode::D)) as u8;
+			cpu.state().program_counter
 		};
 		if !app.paused {
-			(0..app.instructions_per_frame).for_each(|_| execute_one_cycle());
+			for _ in 0..app.instructions_per_frame {
+				if app.breakpoints_addresses().contains(&execute_one_cycle()) {
+					break;
+				};
+			}
 		} else if app.step {
 			execute_one_cycle();
 			app.step = false;
+		}
+		if app
+			.breakpoints_addresses()
+			.contains(&cpu.state().program_counter)
+		{
+			app.paused = true;
 		}
 		// Window Decorations
 		clear_background(BLACK);

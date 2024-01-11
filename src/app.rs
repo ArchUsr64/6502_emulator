@@ -15,6 +15,7 @@ pub struct App {
 	/// Vector of line numbers
 	breakpoints: Vec<usize>,
 	breakpoints_user_entry: String,
+	break_address: Vec<u16>,
 	watchpoints: Vec<u16>,
 	watchpoints_user_entry: String,
 	ui_scale: f32,
@@ -31,10 +32,14 @@ impl App {
 			reset: false,
 			breakpoints: vec![],
 			breakpoints_user_entry: String::new(),
+			break_address: vec![],
 			watchpoints: vec![],
 			watchpoints_user_entry: String::new(),
 			ui_scale: 1.,
 		}
+	}
+	pub fn breakpoints_addresses(&self) -> &[u16] {
+		&self.break_address
 	}
 	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &Memory) {
 		let current_line_number = self
@@ -245,5 +250,10 @@ impl App {
 		if self.breakpoints.contains(&(current_line_number + 1)) {
 			self.paused = true;
 		}
+		self.break_address = self
+			.breakpoints
+			.iter()
+			.map(|&i| self.debug_symbols[i - 1])
+			.collect();
 	}
 }
