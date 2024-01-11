@@ -83,3 +83,7 @@ MSB      LSB
 - [Macroquad](https://crates.io/crates/macroquad) for providing an easy to use graphics API.
 - [Emulating a 6502 system in JavaScript • Matt Godbolt](https://www.youtube.com/watch?v=7WuRq-Wmw5o)
 - [Assembly language vs. machine code - Ben Eater](https://www.youtube.com/watch?v=oO8_2JJV0B4)
+
+## Similar Projects
+- [Mesen](https://www.mesen.ca/)
+- [henrikpersson/potatis](https://github.com/henrikpersson/potatis)
