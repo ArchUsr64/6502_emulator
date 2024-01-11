@@ -143,14 +143,14 @@ async fn main() {
 		clear_background(BLACK);
 		let screen_size = (screen_width(), screen_height());
 		let min_screen_dimension = screen_size.0.min(screen_size.1);
-		let pixel_size = 0.95 * min_screen_dimension / 32.;
+		let pixel_size = app.window_scale * min_screen_dimension / 32.;
 		let gap = (
 			screen_size.0 - 32. * pixel_size,
 			screen_size.1 - 32. * pixel_size,
 		);
 		draw_rectangle_lines(
-			(gap.0 / 2.) - 2.,
-			(gap.1 / 2.) - 2.,
+			gap.0 - 2.,
+			gap.1 - 2.,
 			(pixel_size * 32.) + 4.,
 			(pixel_size * 32.) + 4.,
 			5.,
@@ -167,8 +167,8 @@ async fn main() {
 					)
 				};
 				draw_rectangle(
-					gap.0 / 2. + j as f32 * pixel_size,
-					gap.1 / 2. + i as f32 * pixel_size,
+					gap.0 + j as f32 * pixel_size,
+					gap.1 + i as f32 * pixel_size,
 					pixel_size,
 					pixel_size,
 					color(mem.data[SCREEN_MEMORY_START + (i << 5) + j]),
