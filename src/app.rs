@@ -74,9 +74,9 @@ impl App {
 			ui.horizontal(|ui| {
 				if ui
 					.add(egui::Button::new(if !self.paused {
-						"Pause Execution"
+						"Pause"
 					} else {
-						"Resume Execution"
+						"Resume"
 					}))
 					.clicked()
 				{
@@ -296,6 +296,20 @@ impl App {
 					self.breakpoints.remove(*i);
 				});
 			});
+		#[cfg(target_family = "wasm")]
+		egui::Window::new("Help").show(ctx, |ui| {
+			ui.label(egui::RichText::new(
+				"1. Use the arrow or WASD keys to move the snake.",
+			).color(Color32::LIGHT_GREEN));
+			ui.label(egui::RichText::new(
+				"2. Click 'Pause' button in 'Debug Controls' to pause execution.",
+			).color(Color32::LIGHT_GREEN));
+			ui.label(egui::RichText::new(
+				"3. Click on the line numbers on the 'Source Code' window to toggle breakpoints.",
+			).color(Color32::LIGHT_GREEN));
+			ui.label("Source Code:");
+			ui.hyperlink("https://github.com/ArchUsr64/6502_emulator/");
+		});
 		if self.breakpoints.contains(&(current_line_number + 1)) {
 			self.paused = true;
 		}
