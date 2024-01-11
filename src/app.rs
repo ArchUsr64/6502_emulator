@@ -111,11 +111,16 @@ impl App {
 					.color(Color32::LIGHT_RED),
 			);
 			ui.add(egui::Label::new("Instruction:"));
-			ui.label(
-				egui::RichText::new(self.source_file[current_line_number].trim_start())
-					.color(Color32::YELLOW)
-					.monospace(),
-			);
+			let line = self.source_file[current_line_number].trim_start();
+			ui.horizontal(|ui| {
+				for (i, words) in line.split_whitespace().enumerate() {
+					ui.label(egui::RichText::new(words).monospace().color(if i == 0 {
+						Color32::KHAKI
+					} else {
+						Color32::GOLD
+					}));
+				}
+			});
 			ui.add(egui::Label::new("Registers:"));
 			ui.label(
 				egui::RichText::new(format!(
@@ -160,20 +165,49 @@ impl App {
 									self.breakpoints.push(line_number + 1);
 								}
 							};
-							ui.label(
-								egui::RichText::new(line)
-									.monospace()
-									.color(if line.contains(";") {
-										Color32::DARK_GREEN
-									} else {
-										Color32::YELLOW
-									})
-									.background_color(if current_line_number == line_number {
-										Color32::RED
-									} else {
-										Color32::default()
-									}),
-							);
+							if line.contains(";") {
+								ui.label(
+									egui::RichText::new(line)
+										.color(Color32::DARK_GREEN)
+										.monospace(),
+								);
+							} else if line.contains(":") {
+								ui.label(
+									egui::RichText::new(line)
+										.color(Color32::LIGHT_BLUE)
+										.monospace(),
+								);
+							} else if current_line_number == line_number {
+								ui.label(
+									egui::RichText::new(line)
+										.monospace()
+										.color(Color32::YELLOW)
+										.background_color(Color32::DARK_RED),
+								);
+							} else {
+								let leading_whitespace = line.len() - line.trim_start().len();
+								ui.label(
+									egui::RichText::new(&line[..leading_whitespace]).monospace(),
+								);
+								for (i, words) in line.split_whitespace().enumerate() {
+									ui.label(
+										egui::RichText::new(words)
+											.monospace()
+											.color(if i == 0 {
+												Color32::KHAKI
+											} else {
+												Color32::GOLD
+											})
+											.background_color(
+												if current_line_number == line_number {
+													Color32::DARK_RED
+												} else {
+													Color32::default()
+												},
+											),
+									);
+								}
+							}
 						});
 					})
 			});
