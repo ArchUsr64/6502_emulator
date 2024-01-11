@@ -41,7 +41,7 @@ impl App {
 	pub fn breakpoints_addresses(&self) -> &[u16] {
 		&self.break_address
 	}
-	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &Memory) {
+	pub fn render_ui(&mut self, ctx: &egui::Context, cpu: &cpu::Cpu, mem: &mut Memory) {
 		let current_line_number = self
 			.debug_symbols
 			.iter()
@@ -223,6 +223,7 @@ impl App {
 					)
 					.lost_focus() || ui.button("Add").clicked()
 				{
+					// TODO: handle the case with 0x as prefix
 					if let Ok(line_number) = u16::from_str_radix(&self.watchpoints_user_entry, 16) {
 						if !self.watchpoints.contains(&line_number) {
 							self.watchpoints.push(line_number);
@@ -234,10 +235,19 @@ impl App {
 			let mut to_remove = Vec::new();
 			for (i, &watchpoint) in self.watchpoints.iter().enumerate() {
 				ui.horizontal(|ui| {
-					ui.label(format!(
-						"0x{watchpoint:x} => 0x{:02x}",
-						mem.read_byte(watchpoint)
-					));
+					let mut user_entry = format!("{:x}", mem.read_byte(watchpoint));
+					ui.label(format!("0x{watchpoint:04x}"));
+					if egui::TextEdit::singleline(&mut user_entry)
+						.code_editor()
+						.desired_width(30.)
+						.interactive(self.paused)
+						.ui(ui)
+						.changed()
+					{
+						if let Ok(new_value) = u8::from_str_radix(&user_entry, 16) {
+							mem.write_byte(watchpoint, new_value)
+						}
+					}
 					if ui.button("X").clicked() {
 						to_remove.push(i);
 					}

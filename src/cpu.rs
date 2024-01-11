@@ -25,7 +25,7 @@ impl Memory {
 		let higher_byte = self.read_byte(address + 1) as u16;
 		higher_byte << 8 | lower_byte
 	}
-	fn write_byte(&mut self, address: u16, value: u8) {
+	pub fn write_byte(&mut self, address: u16, value: u8) {
 		debug!("[Write]\t\t{:02x} at {:04x}", value, address);
 		self.data[address as usize] = value;
 	}
