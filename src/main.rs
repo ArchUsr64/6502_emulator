@@ -48,7 +48,7 @@ struct Args {
 #[macroquad::main("6502 Emulator")]
 async fn main() {
 	let args = Args::parse();
-	#[cfg(target_family = "unix")]
+	#[cfg(not(target_family = "wasm"))]
 	TermLogger::init(
 		match args.verbosity {
 			1 => LevelFilter::Info,
@@ -64,7 +64,7 @@ async fn main() {
 	let mut debug_symbols_map: HashMap<usize, u16> = HashMap::new();
 	#[cfg(target_family = "wasm")]
 	let file = include_str!("../symbols.dbg");
-	#[cfg(target_family = "unix")]
+	#[cfg(not(target_family = "wasm"))]
 	let file = std::fs::read_to_string(args.debug_symbols).expect("Failed to read debug symbols");
 	file.lines().for_each(|line| {
 		let line_number: usize = line.split_whitespace().nth(0).unwrap().parse().unwrap();
@@ -75,7 +75,7 @@ async fn main() {
 
 	#[cfg(target_family = "wasm")]
 	let file = include_str!("../examples/snake.asm");
-	#[cfg(target_family = "unix")]
+	#[cfg(not(target_family = "wasm"))]
 	let file = std::fs::read_to_string(args.assembly_source).expect("Failed to read debug symbols");
 	let source_file: Vec<String> = file.lines().map(|i| String::from(i)).collect();
 
@@ -187,7 +187,7 @@ async fn main() {
 }
 
 fn read_mem(file_path: &str) -> [u8; MEMORY_SIZE] {
-	#[cfg(target_family = "unix")]
+	#[cfg(not(target_family = "wasm"))]
 	let rom = std::fs::read(file_path).unwrap();
 	#[cfg(target_family = "wasm")]
 	let rom = include_bytes!("../a.out");
